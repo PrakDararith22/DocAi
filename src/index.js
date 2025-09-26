@@ -2,14 +2,24 @@ const chalk = require('chalk').default || require('chalk');
 const ora = require('ora').default || require('ora');
 const FileDiscovery = require('./fileDiscovery');
 const ParserManager = require('./parserManager');
+const { resolveOptions, saveConfigFile } = require('./config');
 
 /**
  * Main function to generate documentation
  * @param {Object} options - CLI options
  */
-async function generateDocumentation(options) {
+async function generateDocumentation(cliOptions) {
   console.log(chalk.blue.bold('🤖 DocAI - AI-Powered Documentation Generator'));
   console.log(chalk.gray('=====================================\n'));
+
+  // Resolve configuration: DEFAULTS <- config file <- env <- CLI
+  const { options, configPath } = await resolveOptions(cliOptions);
+
+  // Optionally save current effective options as config file
+  if (options.saveConfig) {
+    const savedPath = await saveConfigFile(options.project, options);
+    console.log(chalk.gray(`Saved configuration to ${savedPath}`));
+  }
 
   // Validate options
   if (!options.lowLevel && !options.highLevel) {
