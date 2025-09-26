@@ -11,7 +11,7 @@ This checklist ensures every component of DocAI CLI is implemented correctly wit
 - [x] **Task:** Initialize Node.js project and dependencies
 - **Criteria:**
   - [x] `package.json` created with correct metadata (name: "docai", version, description, bin field)
-  - [x] All dependencies installed: `commander`, `@babel/parser`, `glob`, `chalk`, `ora`, `inquirer`, `chokidar`
+  - [x] All dependencies installed: `commander`, `@babel/parser`, `glob`, `chalk`, `ora`, `inquirer`, `chokidar`  
   - [x] Entry point script (`bin/docai.js` or `src/index.js`) with proper shebang `#!/usr/bin/env node`
   - [x] Basic project structure created with `src/`, `tests/`, `README.md`
   - [x] `.gitignore` includes `node_modules`, `*.log`, `.env`
@@ -53,13 +53,13 @@ This checklist ensures every component of DocAI CLI is implemented correctly wit
   - [ ] Returns structured data: `{functions: [{name, params, line, hasDocstring}], classes: [...], errors: [...]}`
   
   **JavaScript/TypeScript Parser:**
-  - [ ] Uses `@babel/parser` with `["typescript", "jsx"]` plugins
-  - [ ] Parses both `.js` and `.ts` files correctly
-  - [ ] Extracts function declarations, expressions, arrow functions
-  - [ ] Extracts class methods and constructors
-  - [ ] Detects existing JSDoc comments (/** */ before function)
-  - [ ] Handles parsing errors: logs error, skips file, continues
-  - [ ] Returns same structured format as Python parser
+  - [x] Uses `@babel/parser` with `["typescript", "jsx"]` plugins
+  - [x] Parses both `.js` and `.ts` files correctly
+  - [x] Extracts function declarations, expressions, arrow functions
+  - [x] Extracts class methods and constructors
+  - [x] Detects existing JSDoc comments (/** */ before function)
+  - [x] Handles parsing errors: logs error, skips file, continues
+  - [x] Returns same structured format as Python parser
 
 ### 1.5 Configuration File Support
 - [ ] **Task:** Implement JSON configuration file support
