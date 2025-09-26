@@ -1,6 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
-const glob = require('glob');
+const { glob } = require('glob');
 const chalk = require('chalk').default || require('chalk');
 const ora = require('ora').default || require('ora');
 
@@ -84,27 +84,24 @@ class FileDiscovery {
    * Discover files using glob pattern
    */
   async discoverByPattern() {
-    return new Promise((resolve, reject) => {
-      glob(this.filePattern, { 
+    try {
+      const files = await glob(this.filePattern, { 
         cwd: this.projectPath,
         absolute: true,
         ignore: this.excludePatterns
-      }, (err, files) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        
-        const fileObjects = files.map(filePath => ({
-          path: filePath,
-          language: this.getLanguageFromExtension(filePath),
-          size: 0, // Will be filled later
-          exists: true
-        }));
-        
-        resolve(fileObjects);
       });
-    });
+      
+      const fileObjects = files.map(filePath => ({
+        path: filePath,
+        language: this.getLanguageFromExtension(filePath),
+        size: 0, // Will be filled later
+        exists: true
+      }));
+      
+      return fileObjects;
+    } catch (error) {
+      throw new Error(`Glob pattern error: ${error.message}`);
+    }
   }
 
   /**

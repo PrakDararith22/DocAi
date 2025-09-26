@@ -1,6 +1,7 @@
 const chalk = require('chalk').default || require('chalk');
 const ora = require('ora').default || require('ora');
 const FileDiscovery = require('./fileDiscovery');
+const ParserManager = require('./parserManager');
 
 /**
  * Main function to generate documentation
@@ -57,12 +58,47 @@ async function generateDocumentation(options) {
     
     console.log(chalk.green(`\n✅ Found ${validFiles.length} files ready for processing!`));
     
+    // Initialize parser manager
+    const parserManager = new ParserManager(options);
+    
+    // Parse files to extract functions and classes
+    const parseResults = await parserManager.parseFiles(validFiles);
+    
+    // Get all functions and classes for processing
+    const allFunctions = parserManager.getAllFunctions(parseResults);
+    const allClasses = parserManager.getAllClasses(parseResults);
+    
+    console.log(chalk.blue(`\n📊 Parsing Complete:`));
+    console.log(chalk.gray(`  Functions found: ${allFunctions.length}`));
+    console.log(chalk.gray(`  Classes found: ${allClasses.length}`));
+    console.log(chalk.gray(`  Files with errors: ${parseResults.summary.errors}`));
+    
     if (options.preview) {
-      console.log(chalk.blue('\n📋 Preview Mode - Files to be processed:'));
-      validFiles.forEach((file, index) => {
-        console.log(chalk.gray(`  ${index + 1}. ${file.path} (${file.language})`));
-      });
-      console.log(chalk.gray('\nNext: Code parsing and AI generation will be implemented...'));
+      console.log(chalk.blue('\n📋 Preview Mode - Functions and Classes to be documented:'));
+      
+      // Show functions without docstrings
+      const functionsNeedingDocs = allFunctions.filter(func => !func.has_docstring);
+      if (functionsNeedingDocs.length > 0) {
+        console.log(chalk.yellow('\n🔧 Functions needing documentation:'));
+        functionsNeedingDocs.forEach((func, index) => {
+          console.log(chalk.gray(`  ${index + 1}. ${func.name}() in ${func.file_path} (line ${func.line})`));
+        });
+      }
+      
+      // Show classes without docstrings
+      const classesNeedingDocs = allClasses.filter(cls => !cls.has_docstring);
+      if (classesNeedingDocs.length > 0) {
+        console.log(chalk.yellow('\n🏗️  Classes needing documentation:'));
+        classesNeedingDocs.forEach((cls, index) => {
+          console.log(chalk.gray(`  ${index + 1}. ${cls.name} in ${cls.file_path} (line ${cls.line})`));
+        });
+      }
+      
+      if (functionsNeedingDocs.length === 0 && classesNeedingDocs.length === 0) {
+        console.log(chalk.green('\n✅ All functions and classes already have documentation!'));
+      }
+      
+      console.log(chalk.gray('\nNext: AI-powered documentation generation will be implemented...'));
     }
     
   } catch (error) {
