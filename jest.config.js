@@ -29,6 +29,7 @@ module.exports = {
   moduleNameMapper: {
     '^chalk$': '<rootDir>/tests/__mocks__/chalk.js',
     '^ora$': '<rootDir>/tests/__mocks__/ora.js',
-    '^cli-progress$': '<rootDir>/tests/__mocks__/cli-progress.js'
+    '^cli-progress$': '<rootDir>/tests/__mocks__/cli-progress.js',
+    '^inquirer$': '<rootDir>/tests/__mocks__/inquirer.js'
   }
 };
