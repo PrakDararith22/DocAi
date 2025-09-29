@@ -3,7 +3,7 @@
   "lowLevel": true,
   "highLevel": false,
   "inline": true,
-  "file": "./**/*.py",
+  "file": "./test_utilities.py",
   "lang": "all",
   "output": "./docs",
   "preview": true,
@@ -17,12 +17,14 @@
   "cleanup": true,
   "timestamped": false,
   "strict": false,
-  "logErrors": false,
+  "logErrors": true,
   "concurrency": "5",
   "maxMemory": "200",
   "benchmark": false,
   "verbose": true,
   "style": "google",
-  "saveConfig": true,
-  "hf_token": "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"
+  "provider": "gemini",
+  "gemini_model": "gemini-2.5-flash",
+  "gemini_api_key": "AIzaSyBHRn_iaKfvHTmhvMFniJb9wXKpV5Y_iso",
+  "saveConfig": true
 }

@@ -1,5 +1,5 @@
 const chalk = require('chalk').default || require('chalk');
-const HuggingFaceAPI = require('./huggingFaceAPI');
+const { createAIProvider } = require('./aiProviderFactory');
 const DocumentationAnalyzer = require('./documentationAnalyzer');
 
 /**
@@ -9,7 +9,7 @@ const DocumentationAnalyzer = require('./documentationAnalyzer');
 class DocumentationGenerator {
   constructor(options = {}) {
     this.options = options;
-    this.aiAPI = new HuggingFaceAPI(options);
+    this.aiAPI = createAIProvider(options);
     this.analyzer = new DocumentationAnalyzer(options);
     this.verbose = options.verbose || false;
   }
@@ -211,23 +211,31 @@ class DocumentationGenerator {
     const style = this.getRecommendedStyle(func.language, styleAnalysis);
     
     let prompt = `Generate a ${style} style docstring for this ${func.language} function:\n\n`;
-    prompt += `def ${func.name}(`;
     
-    if (func.params && func.params.length > 0) {
-      prompt += func.params.map(param => param.name).join(', ');
+    // Use actual function source code if available, otherwise fall back to signature
+    if (func.source_code) {
+      prompt += func.source_code + '\n\n';
+    } else {
+      prompt += `def ${func.name}(`;
+      
+      if (func.params && func.params.length > 0) {
+        prompt += func.params.map(param => param.name).join(', ');
+      }
+      
+      prompt += `):\n`;
+      
+      if (func.return_type) {
+        prompt += `    -> ${func.return_type}\n`;
+      }
+      
+      prompt += `    pass\n\n`;
     }
     
-    prompt += `):\n`;
-    
-    if (func.return_type) {
-      prompt += `    -> ${func.return_type}\n`;
-    }
-    
-    prompt += `    pass\n\n`;
     prompt += `Requirements:\n`;
     prompt += `- Use ${style} style formatting\n`;
-    prompt += `- Include parameter descriptions\n`;
-    prompt += `- Include return value description\n`;
+    prompt += `- Analyze the function logic to write meaningful documentation\n`;
+    prompt += `- Include parameter descriptions based on how they're used\n`;
+    prompt += `- Include return value description based on what the function returns\n`;
     prompt += `- Be concise but informative\n`;
     prompt += `- Only return the docstring content, no code\n\n`;
     prompt += `Docstring:`;

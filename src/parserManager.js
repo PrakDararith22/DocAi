@@ -102,6 +102,27 @@ class ParserManager {
   }
 
   /**
+   * Parse a single file
+   * @param {Object} file - File object with path and language properties
+   * @returns {Promise<Object>} Parsed result with language property
+   */
+  async parseFile(file) {
+    const language = this.getLanguageFromPath(file.path);
+    
+    if (language === 'python') {
+      const result = await this.pythonParser.parseFile(file.path);
+      result.language = 'python';
+      return result;
+    } else if (language === 'javascript' || language === 'typescript') {
+      const result = await this.jsParser.parseFile(file.path);
+      result.language = language;
+      return result;
+    } else {
+      throw new Error(`Unsupported language: ${language}`);
+    }
+  }
+
+  /**
    * Group files by language
    * @param {Array} files - Array of file objects
    * @returns {Object} Files grouped by language

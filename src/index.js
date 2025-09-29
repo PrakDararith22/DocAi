@@ -1,9 +1,9 @@
 const path = require('path');
 const chalk = require('chalk').default || require('chalk');
 const ora = require('ora').default || require('ora');
+const fs = require('fs');
 const FileDiscovery = require('./fileDiscovery');
 const ParserManager = require('./parserManager');
-const HuggingFaceAPI = require('./huggingFaceAPI');
 const DocumentationAnalyzer = require('./documentationAnalyzer');
 const DocumentationGenerator = require('./documentationGenerator');
 const BackupManager = require('./backupManager');
@@ -15,6 +15,7 @@ const WatchMode = require('./watchMode');
 const ReadmeGenerator = require('./readmeGenerator');
 const PerformanceOptimizer = require('./performanceOptimizer');
 const { resolveOptions, saveConfigFile } = require('./config');
+const { createAIProvider } = require('./aiProviderFactory');
 
 /**
  * Generate project information
@@ -73,13 +74,7 @@ async function generateDocumentation(cliOptions) {
     process.exit(1);
   }
 
-  // Validate HF_TOKEN for AI generation
-  if (!options.hf_token) {
-    console.error(chalk.red('Error: HF_TOKEN is required for AI-powered documentation generation.'));
-    console.error(chalk.gray('Please set it as an environment variable: export HF_TOKEN=your_token_here'));
-    console.error(chalk.gray('Or add it to your .docaiConfig.json file: {"hf_token": "your_token_here"}'));
-    process.exit(1);
-  }
+  // Provider/key validation will be handled by provider's testConnection later
 
   // Initialize managers
   const errorManager = new ErrorManager(options);
@@ -285,21 +280,21 @@ async function generateDocumentation(cliOptions) {
       }
       
     } else {
-      // Initialize AI API for documentation generation
+      // Initialize AI Provider for documentation generation
       try {
-        const aiAPI = new HuggingFaceAPI(options);
+        const aiAPI = createAIProvider(options);
         
         // Test API connection
-        console.log(chalk.blue('\n🤖 Testing AI API connection...'));
+        console.log(chalk.blue('\n🤖 Testing AI provider connection...'));
         const connectionTest = await aiAPI.testConnection();
         
         if (!connectionTest.success) {
-          console.error(chalk.red('❌ AI API connection failed:'), connectionTest.message);
-          console.error(chalk.gray('Please check your HF_TOKEN and try again.'));
+          console.error(chalk.red('❌ AI provider connection failed:'), connectionTest.message);
+          console.error(chalk.gray('Please check your provider configuration and API key (e.g., GOOGLE_API_KEY for Gemini or HF_TOKEN for Hugging Face).'));
           return;
         }
         
-        console.log(chalk.green('✅ AI API connection successful!'));
+        console.log(chalk.green('✅ AI provider connection successful!'));
         
         // Generate documentation for functions and classes
         if (allFunctions.length > 0 || allClasses.length > 0) {
@@ -335,18 +330,40 @@ async function generateDocumentation(cliOptions) {
         const aiResults = await performanceOptimizer.batchAPICalls(
           allItems,
           async (item) => {
-            return await docGenerator.generateDocstringForItem(item, styleAnalysis);
+            try {
+              let result;
+              if (item.type === 'function') {
+                result = await docGenerator.generateFunctionDocstring(item, styleAnalysis);
+              } else if (item.type === 'class') {
+                result = await docGenerator.generateClassDocstring(item, styleAnalysis);
+              } else {
+                throw new Error(`Unknown item type: ${item.type}`);
+              }
+              
+              // Wrap successful result with original item information
+              return { success: true, result, item };
+            } catch (error) {
+              // Wrap failed result with original item information
+              return { success: false, error: error.message, item };
+            }
           },
           5 // Batch size for API calls
         );
         
         // Convert results back to expected format
         const generationResults = {
-          generated: aiResults.filter(result => result.success).map(result => result.result),
+          generated: aiResults.filter(result => result.success).map(result => ({
+            type: result.item.type,
+            name: result.item.name,
+            file: result.item.file_path, // Convert file_path to file for preview system
+            line: result.item.line,
+            docstring: result.result.text,
+            language: result.item.language
+          })),
           errors: aiResults.filter(result => !result.success).map(result => result.error),
           summary: {
-            generatedFunctions: aiResults.filter(r => r.success && r.result && r.result.type === 'function').length,
-            generatedClasses: aiResults.filter(r => r.success && r.result && r.result.type === 'class').length,
+            generatedFunctions: aiResults.filter(r => r.success && r.item.type === 'function').length,
+            generatedClasses: aiResults.filter(r => r.success && r.item.type === 'class').length,
             skippedFunctions: 0,
             skippedClasses: 0,
             errors: aiResults.filter(r => !r.success).length

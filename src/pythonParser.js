@@ -76,13 +76,17 @@ def extract_function_info(node):
     if node.returns:
         return_type = ast.unparse(node.returns) if hasattr(ast, 'unparse') else str(node.returns)
     
+    # Get function body/source code
+    function_source = ast.unparse(node) if hasattr(ast, 'unparse') else None
+    
     return {
         'name': node.name,
         'line': node.lineno,
         'params': params,
         'return_type': return_type,
         'has_docstring': extract_docstring(node) is not None,
-        'docstring': extract_docstring(node)
+        'docstring': extract_docstring(node),
+        'source_code': function_source
     }
 
 def extract_class_info(node):

@@ -41,6 +41,8 @@ program
   .option('--style <style>', 'Python docstring style (google, numpy, sphinx)', 'google')
   .option('--config <path>', 'Path to configuration file')
   .option('--save-config', 'Save current options to configuration file')
+  .option('--provider <name>', 'AI provider to use (gemini, huggingface)')
+  .option('--model <name>', 'AI model to use (e.g., gemini-2.5-flash, gemini-1.5-flash-latest)')
   .action(async (options) => {
     try {
       await generateDocumentation(options);

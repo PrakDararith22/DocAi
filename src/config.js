@@ -31,6 +31,10 @@ function getDefaultOptions(cwd) {
     benchmark: false, // New Phase 5 option
     verbose: false,
     style: 'google',
+    // Provider-related (Phase 8)
+    provider: undefined,
+    gemini_model: undefined,
+    gemini_api_key: undefined,
   };
 }
 
@@ -70,6 +74,13 @@ function validateConfig(config) {
   if (config.hf_token && typeof config.hf_token !== 'string') {
     throw new Error('hf_token must be a string.');
   }
+  // Phase 8: optional provider fields
+  if (config.provider && typeof config.provider !== 'string') {
+    throw new Error('provider must be a string when provided.');
+  }
+  if (config.gemini_model && typeof config.gemini_model !== 'string') {
+    throw new Error('gemini_model must be a string when provided.');
+  }
   
   if (config.project && typeof config.project !== 'string') {
     throw new Error('project must be a string.');
@@ -81,6 +92,16 @@ function envOverrides() {
   if (process.env.HF_TOKEN) {
     env.hf_token = process.env.HF_TOKEN;
   }
+  // Phase 8: provider envs
+  if (process.env.DOC_PROVIDER) {
+    env.provider = process.env.DOC_PROVIDER;
+  }
+  if (process.env.DOC_MODEL) {
+    env.gemini_model = process.env.DOC_MODEL;
+  }
+  if (process.env.GOOGLE_API_KEY) {
+    env.gemini_api_key = process.env.GOOGLE_API_KEY;
+  }
   return env;
 }
 
@@ -91,6 +112,8 @@ function normalizeOptionNames(opts) {
   if (Object.prototype.hasOwnProperty.call(out, 'high_level')) out.highLevel = out.high_level;
   if (Object.prototype.hasOwnProperty.call(out, 'skip_errors')) out.skipErrors = out.skip_errors;
   if (Object.prototype.hasOwnProperty.call(out, 'hf_token')) out.hf_token = out.hf_token;
+  // Phase 8: CLI model flag maps to gemini_model
+  if (Object.prototype.hasOwnProperty.call(out, 'model')) out.gemini_model = out.model;
   return out;
 }
 

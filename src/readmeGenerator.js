@@ -1,7 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
 const chalk = require('chalk').default || require('chalk');
-const HuggingFaceAPI = require('./huggingFaceAPI');
 
 /**
  * README Generator
