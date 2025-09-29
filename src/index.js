@@ -2,6 +2,7 @@ const chalk = require('chalk').default || require('chalk');
 const ora = require('ora').default || require('ora');
 const FileDiscovery = require('./fileDiscovery');
 const ParserManager = require('./parserManager');
+const HuggingFaceAPI = require('./huggingFaceAPI');
 const { resolveOptions, saveConfigFile } = require('./config');
 
 /**
@@ -29,6 +30,14 @@ async function generateDocumentation(cliOptions) {
 
   if (options.inline && !options.lowLevel) {
     console.error(chalk.red('Error: --inline requires --low-level'));
+    process.exit(1);
+  }
+
+  // Validate HF_TOKEN for AI generation
+  if (!options.hf_token) {
+    console.error(chalk.red('Error: HF_TOKEN is required for AI-powered documentation generation.'));
+    console.error(chalk.gray('Please set it as an environment variable: export HF_TOKEN=your_token_here'));
+    console.error(chalk.gray('Or add it to your .docaiConfig.json file: {"hf_token": "your_token_here"}'));
     process.exit(1);
   }
 
@@ -109,6 +118,38 @@ async function generateDocumentation(cliOptions) {
       }
       
       console.log(chalk.gray('\nNext: AI-powered documentation generation will be implemented...'));
+    } else {
+      // Initialize AI API for documentation generation
+      try {
+        const aiAPI = new HuggingFaceAPI(options);
+        
+        // Test API connection
+        console.log(chalk.blue('\n🤖 Testing AI API connection...'));
+        const connectionTest = await aiAPI.testConnection();
+        
+        if (!connectionTest.success) {
+          console.error(chalk.red('❌ AI API connection failed:'), connectionTest.message);
+          console.error(chalk.gray('Please check your HF_TOKEN and try again.'));
+          return;
+        }
+        
+        console.log(chalk.green('✅ AI API connection successful!'));
+        
+        // Generate documentation for functions and classes
+        if (allFunctions.length > 0 || allClasses.length > 0) {
+          console.log(chalk.blue('\n📝 Generating AI-powered documentation...'));
+          
+          // TODO: Implement actual documentation generation
+          console.log(chalk.gray('Documentation generation will be implemented in Phase 2.3'));
+          console.log(chalk.gray(`Found ${allFunctions.length} functions and ${allClasses.length} classes to document.`));
+        } else {
+          console.log(chalk.yellow('No functions or classes found to document.'));
+        }
+        
+      } catch (error) {
+        console.error(chalk.red('Error initializing AI API:'), error.message);
+        throw error;
+      }
     }
     
   } catch (error) {

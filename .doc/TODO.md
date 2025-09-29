@@ -83,22 +83,22 @@ This checklist ensures every component of DocAI CLI is implemented correctly wit
 - [x] Add CLI help description for `--config` and `--save-config` flags
 - [x] Unit test loading, overriding, and error handling
 
----
+---0
 
 ## Phase 2: AI Integration & Documentation Engine
 
 ### 2.1 Hugging Face API Integration
-- [ ] **Task:** Connect to StarCoder model via HF Inference API
+- [x] **Task:** Connect to StarCoder model via HF Inference API
 - **Criteria:**
-  - [ ] Reads `HF_TOKEN` from environment variable or a config file (e.g., `.docairc.json`)
-  - [ ] Fails gracefully if `HF_TOKEN` is missing in both locations, with a clear error message
-  - [ ] Makes successful API calls to `https://api-inference.huggingface.co/models/bigcode/starcoder`
-  - [ ] Handles authentication errors with clear messages
-  - [ ] Implements rate limiting (max 5 requests/second)
-  - [ ] Retry logic with exponential backoff for failed requests
-  - [ ] Timeout handling (30s max per request)
-  - [ ] Error logging includes response status and message
-  - [ ] Returns generated text or error status
+  - [x] Reads `HF_TOKEN` from environment variable or a config file (e.g., `.docairc.json`)
+  - [x] Fails gracefully if `HF_TOKEN` is missing in both locations, with a clear error message
+  - [x] Makes successful API calls to `https://api-inference.huggingface.co/models/bigcode/starcoder`
+  - [x] Handles authentication errors with clear messages
+  - [x] Implements rate limiting (max 5 requests/second)
+  - [x] Retry logic with exponential backoff for failed requests
+  - [x] Timeout handling (30s max per request)
+  - [x] Error logging includes response status and message
+  - [x] Returns generated text or error status
 
 ### 2.2 Documentation Detection & Analysis
 - [ ] **Task:** Analyze existing documentation patterns

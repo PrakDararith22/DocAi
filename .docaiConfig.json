@@ -3,15 +3,16 @@
   "lowLevel": true,
   "highLevel": false,
   "inline": false,
-  "file": "./test/working_sample.py",
-  "lang": "py",
+  "file": "./test/test_functions.py",
+  "lang": "all",
   "output": "./docs",
-  "preview": true,
+  "preview": false,
   "watch": false,
   "force": false,
   "skipErrors": false,
   "backup": false,
   "verbose": true,
   "style": "google",
-  "saveConfig": true
+  "saveConfig": true,
+  "hf_token": "test_token_123"
 }

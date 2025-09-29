@@ -54,7 +54,15 @@ function validateConfig(config) {
   if (config == null || typeof config !== 'object') {
     throw new Error('Configuration must be a JSON object.');
   }
-  // No strict required fields for Phase 1.5; HF token is Phase 2.1
+  
+  // Validate required fields for Phase 2.1
+  if (config.hf_token && typeof config.hf_token !== 'string') {
+    throw new Error('hf_token must be a string.');
+  }
+  
+  if (config.project && typeof config.project !== 'string') {
+    throw new Error('project must be a string.');
+  }
 }
 
 function envOverrides() {
