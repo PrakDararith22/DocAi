@@ -1,1 +1,17 @@
-{"project":".","lang":"js","lowLevel":true,"preview":true,"file":"./test/**/*.js"}
+{
+  "project": "/Users/anbschool0005/docai",
+  "lowLevel": true,
+  "highLevel": false,
+  "inline": false,
+  "file": "./test/working_sample.py",
+  "lang": "py",
+  "output": "./docs",
+  "preview": true,
+  "watch": false,
+  "force": false,
+  "skipErrors": false,
+  "backup": false,
+  "verbose": true,
+  "style": "google",
+  "saveConfig": true
+}

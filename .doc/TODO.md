@@ -62,26 +62,26 @@ This checklist ensures every component of DocAI CLI is implemented correctly wit
   - [x] Returns same structured format as Python parser
 
 ### 1.5 Configuration File Support
-- [ ] **Task:** Implement JSON configuration file support
+- [x] **Task:** Implement JSON configuration file support
 - **Criteria:**
-  - [ ] Detect `.docaiConfig.json` in project root automatically
-  - [ ] Allow alternative config path via CLI flag: `--config <path>`
-  - [ ] Load default CLI options from JSON file:
+  - [x] Detect `.docaiConfig.json` in project root automatically
+  - [x] Allow alternative config path via CLI flag: `--config <path>`
+  - [x] Load default CLI options from JSON file:
     - `hf_token`, `project`, `lang`, `low_level`, `high_level`, `inline`, `file`, `output`, `preview`, `watch`, `overwrite`, `skip_errors`, `backup`, `verbose`, `style`
-  - [ ] CLI flags override configuration file values
-  - [ ] Environment variables (e.g., `HF_TOKEN`) override config file
-  - [ ] Validate JSON syntax and required fields
-  - [ ] Handle missing or malformed config gracefully with clear error messages
-  - [ ] Secure handling: do not log API tokens or sensitive data
-  - [ ] Provide feedback when config file is loaded: "Loaded configuration from .docaiConfig.json"
-  - [ ] Allow saving current CLI flags as config file with `--save-config` (optional feature)
+  - [x] CLI flags override configuration file values
+  - [x] Environment variables (e.g., `HF_TOKEN`) override config file
+  - [x] Validate JSON syntax and required fields
+  - [x] Handle missing or malformed config gracefully with clear error messages
+  - [x] Secure handling: do not log API tokens or sensitive data
+  - [x] Provide feedback when config file is loaded: "Loaded configuration from .docaiConfig.json"
+  - [x] Allow saving current CLI flags as config file with `--save-config` (optional feature)
 
 **Quick To-Do:**
-- [ ] Implement JSON parser for config file
-- [ ] Merge config values with CLI flags and environment variables
-- [ ] Validate required fields (`hf_token`, `project`)
-- [ ] Add CLI help description for `--config` and `--save-config` flags
-- [ ] Unit test loading, overriding, and error handling
+- [x] Implement JSON parser for config file
+- [x] Merge config values with CLI flags and environment variables
+- [x] Validate required fields (`hf_token`, `project`)
+- [x] Add CLI help description for `--config` and `--save-config` flags
+- [x] Unit test loading, overriding, and error handling
 
 ---
 
