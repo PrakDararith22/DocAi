@@ -114,14 +114,25 @@ def parse_file(file_path):
         classes = []
         errors = []
         
+        # First pass: collect all classes to track their methods
+        class_nodes = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                class_nodes.append(node)
+                classes.append(extract_class_info(node))
+        
+        # Second pass: collect top-level functions (not methods)
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
-                # Skip methods (they're handled in class extraction)
-                if not any(isinstance(parent, ast.ClassDef) for parent in ast.walk(tree) 
-                          if hasattr(parent, 'body') and node in parent.body):
+                # Check if this function is a method of any class
+                is_method = False
+                for class_node in class_nodes:
+                    if hasattr(class_node, 'body') and node in class_node.body:
+                        is_method = True
+                        break
+                
+                if not is_method:
                     functions.append(extract_function_info(node))
-            elif isinstance(node, ast.ClassDef):
-                classes.append(extract_class_info(node))
         
         return {
             'functions': functions,
@@ -164,7 +175,7 @@ if __name__ == '__main__':
    */
   async runPythonAST(filePath, pythonCode) {
     return new Promise((resolve, reject) => {
-      const python = spawn('python', ['-c', pythonCode, filePath], {
+      const python = spawn('python3', ['-c', pythonCode, filePath], {
         stdio: ['pipe', 'pipe', 'pipe']
       });
 
@@ -205,7 +216,7 @@ if __name__ == '__main__':
    */
   async checkPythonAvailability() {
     return new Promise((resolve) => {
-      const python = spawn('python', ['--version'], { stdio: 'pipe' });
+      const python = spawn('python3', ['--version'], { stdio: 'pipe' });
       
       python.on('close', (code) => {
         resolve(code === 0);

@@ -41,16 +41,16 @@ This checklist ensures every component of DocAI CLI is implemented correctly wit
   - [x] Progress feedback: Shows "Found X files to process"
 
 ### 1.4 AST Parsers Implementation
-- [ ] **Task:** Build Python and JS/TS code parsers
+- [x] **Task:** Build Python and JS/TS code parsers
 - **Criteria:**
   
   **Python Parser:**
-  - [ ] Spawns `python -c "import ast; ..."` child process successfully
-  - [ ] Extracts function definitions with names, parameters, line numbers
-  - [ ] Extracts class definitions with methods
-  - [ ] Detects existing docstrings (first string literal in function/class)
-  - [ ] Handles syntax errors gracefully: logs error, skips file, continues
-  - [ ] Returns structured data: `{functions: [{name, params, line, hasDocstring}], classes: [...], errors: [...]}`
+  - [x] Spawns `python3 -c "import ast; ..."` child process successfully
+  - [x] Extracts function definitions with names, parameters, line numbers
+  - [x] Extracts class definitions with methods
+  - [x] Detects existing docstrings (first string literal in function/class)
+  - [x] Handles syntax errors gracefully: logs error, skips file, continues
+  - [x] Returns structured data: `{functions: [{name, params, line, hasDocstring}], classes: [...], errors: [...]}`
   
   **JavaScript/TypeScript Parser:**
   - [x] Uses `@babel/parser` with `["typescript", "jsx"]` plugins
@@ -267,7 +267,6 @@ This checklist ensures every component of DocAI CLI is implemented correctly wit
   - [ ] Semantic versioning strategy
   - [ ] CI/CD pipeline setup for automated testing and publishing
   - [ ] License file and contribution guidelines
-
 ---
 
 ## Phase 7: Command Reference
