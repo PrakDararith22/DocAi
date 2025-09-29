@@ -26,6 +26,9 @@ function getDefaultOptions(cwd) {
     timestamped: false,
     strict: false,
     logErrors: false,
+    concurrency: 5, // New Phase 5 option
+    maxMemory: 200, // New Phase 5 option
+    benchmark: false, // New Phase 5 option
     verbose: false,
     style: 'google',
   };
@@ -93,12 +96,30 @@ function normalizeOptionNames(opts) {
 
 function mergeOptions({ defaults, config, env, cli }) {
   // Precedence: CLI > ENV > CONFIG > DEFAULTS
-  return {
+  const merged = {
     ...defaults,
     ...normalizeOptionNames(config || {}),
     ...normalizeOptionNames(env || {}),
     ...normalizeOptionNames(cli || {}),
   };
+  
+  // Ensure only one mode is selected
+  if (merged.highLevel && merged.lowLevel) {
+    // If both are set, prioritize CLI over config
+    if (cli && (cli.highLevel !== undefined || cli.lowLevel !== undefined)) {
+      // CLI specified a mode, use that
+      if (cli.highLevel) {
+        merged.lowLevel = false;
+      } else if (cli.lowLevel) {
+        merged.highLevel = false;
+      }
+    } else {
+      // Default to low-level if both are set in config
+      merged.highLevel = false;
+    }
+  }
+  
+  return merged;
 }
 
 async function saveConfigFile(projectPath, config) {

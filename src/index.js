@@ -12,7 +12,38 @@ const ErrorManager = require('./errorManager');
 const PreviewSystem = require('./previewSystem');
 const ProgressManager = require('./progressManager');
 const WatchMode = require('./watchMode');
+const ReadmeGenerator = require('./readmeGenerator');
+const PerformanceOptimizer = require('./performanceOptimizer');
 const { resolveOptions, saveConfigFile } = require('./config');
+
+/**
+ * Generate project information
+ * @param {Object} options - CLI options
+ * @returns {Promise<Object>} Project information
+ */
+async function generateProjectInfo(options) {
+  const packageJsonPath = path.join(options.project, 'package.json');
+  
+  try {
+    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+    return {
+      name: packageJson.name || path.basename(options.project),
+      description: packageJson.description || '',
+      version: packageJson.version || '1.0.0',
+      author: packageJson.author || '',
+      license: packageJson.license || 'MIT'
+    };
+  } catch (error) {
+    // No package.json found, use defaults
+    return {
+      name: path.basename(options.project),
+      description: 'A well-documented project',
+      version: '1.0.0',
+      author: '',
+      license: 'MIT'
+    };
+  }
+}
 
 /**
  * Main function to generate documentation
@@ -53,12 +84,13 @@ async function generateDocumentation(cliOptions) {
   // Initialize managers
   const errorManager = new ErrorManager(options);
   const progressManager = new ProgressManager(options);
+  const performanceOptimizer = new PerformanceOptimizer(options);
 
   // Show what we're going to do
   console.log(chalk.yellow('Configuration:'));
   console.log(`  Project: ${options.project}`);
   console.log(`  Language: ${options.lang}`);
-  console.log(`  Mode: ${options.lowLevel ? 'Low-level (functions/classes)' : 'High-level (README)'}`);
+  console.log(`  Mode: ${options.highLevel ? 'High-level (README)' : options.lowLevel ? 'Low-level (functions/classes)' : 'Low-level (functions/classes)'}`);
   console.log(`  Inline: ${options.inline ? 'Yes' : 'No'}`);
   console.log(`  Preview: ${options.preview ? 'Yes' : 'No'}`);
   console.log(`  Backup: ${options.backup ? 'Yes' : 'No'}`);
@@ -67,8 +99,8 @@ async function generateDocumentation(cliOptions) {
   console.log(`  Strict: ${options.strict ? 'Yes' : 'No'}`);
   console.log('');
 
-  // Handle watch mode
-  if (options.watch) {
+  // Handle watch mode (only for low-level processing)
+  if (options.watch && options.lowLevel && !options.highLevel) {
     const watchMode = new WatchMode(options);
     const fileDiscovery = new FileDiscovery(options);
     const files = await fileDiscovery.discoverFiles();
@@ -117,8 +149,54 @@ async function generateDocumentation(cliOptions) {
     
     // Parse files to extract functions and classes
     const parsingSpinner = progressManager.startSpinner('parsing', '🔍 Parsing files...');
-    const parseResults = await parserManager.parseFiles(validFiles);
-    progressManager.stopSpinner('parsing', 'succeed', `Parsed ${parseResults.summary.parsedFiles} files`);
+    
+    // Use performance optimization for parsing
+    let parseResults = await performanceOptimizer.processFilesInParallel(
+      validFiles,
+      async (file) => {
+        // Check cache first
+        const cached = performanceOptimizer.getCachedParseResult(file.path, file.size);
+        if (cached) {
+          return cached;
+        }
+        
+        // Parse file
+        const result = await parserManager.parseFile(file);
+        
+        // Cache result
+        performanceOptimizer.cacheParseResult(file.path, result);
+        
+        return result;
+      }
+    );
+    
+    // Convert parallel results back to expected format
+    const convertedResults = {
+      python: [],
+      javascript: [],
+      typescript: [],
+      summary: {
+        parsedFiles: 0,
+        errors: 0
+      }
+    };
+    
+    parseResults.forEach(result => {
+      if (result.success && result.result) {
+        const lang = result.result.language || 'python';
+        if (convertedResults[lang]) {
+          convertedResults[lang].push(result.result);
+        }
+        convertedResults.summary.parsedFiles++;
+      } else {
+        convertedResults.summary.errors++;
+      }
+    });
+    
+    progressManager.stopSpinner('parsing', 'succeed', `Parsed ${convertedResults.summary.parsedFiles} files`);
+    
+    // Use converted results for the rest of the processing
+    parseResults = convertedResults;
     
     // Handle parsing errors
     if (parseResults.summary.errors > 0) {
@@ -168,6 +246,44 @@ async function generateDocumentation(cliOptions) {
       }
       
       console.log(chalk.gray('\nNext: AI-powered documentation generation will be implemented...'));
+    } else if (options.highLevel) {
+      // Phase 5.1: High-level README Generation
+      console.log(chalk.blue('\n📚 Phase 5.1: High-level README Generation'));
+      console.log(chalk.gray('========================================='));
+      
+      try {
+        // Generate project information
+        const projectInfo = await generateProjectInfo(options);
+        
+        // Initialize README generator
+        const readmeGenerator = new ReadmeGenerator(options);
+        
+        // Generate README
+        const readmeResults = await readmeGenerator.generateReadme(parseResults, projectInfo);
+        
+        if (readmeResults.success) {
+          console.log(chalk.green(`\n✅ README generated successfully!`));
+          console.log(chalk.gray(`Output: ${readmeResults.outputFile}`));
+          console.log(chalk.gray(`Content length: ${readmeResults.contentLength} characters`));
+          
+          // Show project analysis
+          const analysis = readmeResults.projectAnalysis;
+          console.log(chalk.blue('\n📊 Project Analysis:'));
+          console.log(chalk.gray(`  Project Type: ${analysis.projectType}`));
+          console.log(chalk.gray(`  Functions: ${analysis.functions.length}`));
+          console.log(chalk.gray(`  Classes: ${analysis.classes.length}`));
+          console.log(chalk.gray(`  Key Features: ${analysis.keyFeatures.length}`));
+          console.log(chalk.gray(`  Dependencies: ${analysis.dependencies.python.length + analysis.dependencies.nodejs.length}`));
+        } else {
+          console.log(chalk.red(`❌ README generation failed: ${readmeResults.error}`));
+          errorManager.handleError(new Error(readmeResults.error), 'README Generation', {});
+        }
+        
+      } catch (error) {
+        console.error(chalk.red('Error generating README:'), error.message);
+        errorManager.handleError(error, 'README Generation', {});
+      }
+      
     } else {
       // Initialize AI API for documentation generation
       try {
@@ -192,10 +308,51 @@ async function generateDocumentation(cliOptions) {
           // Analyze existing documentation styles
           const styleAnalysis = new DocumentationAnalyzer(options).analyzeDocumentationStyles(parseResults);
           
-        // Generate documentation using AI
+        // Generate documentation using AI with performance optimization
         const generationSpinner = progressManager.startSpinner('generation', '🤖 Generating documentation...');
         const docGenerator = new DocumentationGenerator(options);
-        const generationResults = await docGenerator.generateDocumentation(parseResults, styleAnalysis);
+        
+        // Prepare items for batch processing
+        const allItems = [];
+        [...parseResults.python, ...parseResults.javascript, ...parseResults.typescript].forEach(fileResult => {
+          if (fileResult.functions) {
+            fileResult.functions.forEach(func => {
+              if (!func.has_docstring) {
+                allItems.push({ type: 'function', ...func, file_path: fileResult.file_path, language: fileResult.language });
+              }
+            });
+          }
+          if (fileResult.classes) {
+            fileResult.classes.forEach(cls => {
+              if (!cls.has_docstring) {
+                allItems.push({ type: 'class', ...cls, file_path: fileResult.file_path, language: fileResult.language });
+              }
+            });
+          }
+        });
+        
+        // Use performance optimization for AI generation
+        const aiResults = await performanceOptimizer.batchAPICalls(
+          allItems,
+          async (item) => {
+            return await docGenerator.generateDocstringForItem(item, styleAnalysis);
+          },
+          5 // Batch size for API calls
+        );
+        
+        // Convert results back to expected format
+        const generationResults = {
+          generated: aiResults.filter(result => result.success).map(result => result.result),
+          errors: aiResults.filter(result => !result.success).map(result => result.error),
+          summary: {
+            generatedFunctions: aiResults.filter(r => r.success && r.result && r.result.type === 'function').length,
+            generatedClasses: aiResults.filter(r => r.success && r.result && r.result.type === 'class').length,
+            skippedFunctions: 0,
+            skippedClasses: 0,
+            errors: aiResults.filter(r => !r.success).length
+          }
+        };
+        
         progressManager.stopSpinner('generation', 'succeed', `Generated ${generationResults.summary.generatedFunctions + generationResults.summary.generatedClasses} items`);
         
         // Handle generation errors
@@ -292,6 +449,9 @@ async function generateDocumentation(cliOptions) {
         throw error;
       }
     }
+    
+    // Show performance summary
+    performanceOptimizer.showPerformanceSummary();
     
     // Show final summary
     progressManager.showFinalSummary({
