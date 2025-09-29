@@ -3,7 +3,7 @@
   "lowLevel": true,
   "highLevel": false,
   "inline": false,
-  "file": "./test/test_functions.py",
+  "file": "./test/integration_test.py",
   "lang": "all",
   "output": "./docs",
   "preview": false,
@@ -14,5 +14,5 @@
   "verbose": true,
   "style": "google",
   "saveConfig": true,
-  "hf_token": "test_token_123"
+  "hf_token": "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"
 }

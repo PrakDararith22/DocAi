@@ -8,7 +8,7 @@ const chalk = require('chalk').default || require('chalk');
 class HuggingFaceAPI {
   constructor(options = {}) {
     this.apiKey = options.hf_token || process.env.HF_TOKEN;
-    this.baseURL = 'https://api-inference.huggingface.co/models/bigcode/starcoder';
+    this.baseURL = 'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium';
     this.timeout = options.timeout || 30000; // 30 seconds
     this.maxRetries = options.maxRetries || 3;
     this.rateLimit = options.rateLimit || 5; // 5 requests per second
@@ -37,44 +37,66 @@ class HuggingFaceAPI {
       // Rate limiting
       await this.enforceRateLimit();
       
-      const requestOptions = {
-        method: 'POST',
-        url: this.baseURL,
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: options.maxTokens || 512,
-            temperature: options.temperature || 0.7,
-            top_p: options.topP || 0.9,
-            do_sample: true,
-            return_full_text: false
-          }
-        },
-        timeout: this.timeout
-      };
-
+      // TODO: Replace with actual API call when HF API is working
+      // For now, return a mock response for development
       if (this.verbose) {
-        console.log(chalk.gray(`🤖 Sending request to Hugging Face API...`));
+        console.log(chalk.gray(`🤖 Mock API: Generating documentation for prompt...`));
       }
 
-      const response = await this.makeRequestWithRetry(requestOptions);
+      // Simulate API delay
+      await this.sleep(1000);
+
+      // Generate mock documentation based on the prompt
+      const mockDocstring = this.generateMockDocstring(prompt);
       
       if (this.verbose) {
-        console.log(chalk.gray(`✅ Received response from Hugging Face API`));
+        console.log(chalk.gray(`✅ Mock API: Generated documentation`));
       }
 
       return {
         success: true,
-        text: response.data[0]?.generated_text || '',
-        usage: response.data[0]?.usage || null
+        text: mockDocstring,
+        usage: { total_tokens: 50, prompt_tokens: 20, generated_tokens: 30 }
       };
 
     } catch (error) {
       return this.handleAPIError(error);
+    }
+  }
+
+  /**
+   * Generate mock docstring for development purposes
+   * @param {string} prompt - The function signature prompt
+   * @returns {string} Mock docstring
+   */
+  generateMockDocstring(prompt) {
+    // Extract function name from prompt
+    const functionMatch = prompt.match(/def\s+(\w+)\s*\(/);
+    const classNameMatch = prompt.match(/class\s+(\w+)/);
+    
+    if (functionMatch) {
+      const funcName = functionMatch[1];
+      return `    \"\"\"${funcName} function.
+    
+    This function performs the operation described in the function name.
+    
+    Returns:
+        The result of the operation.
+    \"\"\"`;
+    } else if (classNameMatch) {
+      const className = classNameMatch[1];
+      return `    \"\"\"${className} class.
+    
+    This class provides functionality related to ${className.toLowerCase()}.
+    
+    Attributes:
+        None currently defined.
+    \"\"\"`;
+    } else {
+      return `    \"\"\"Generated documentation.
+    
+    This is a mock documentation generated for development purposes.
+    \"\"\"`;
     }
   }
 
