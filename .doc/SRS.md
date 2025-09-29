@@ -72,7 +72,7 @@
 ## 7. Acceptance Criteria
 - Provider factory selects Gemini when `provider: "gemini"` (or env override) and successfully returns a provider instance.
 - `testConnection()` confirms a minimal generation succeeds with a valid `GOOGLE_API_KEY`.
-- `docai generate --low-level --preview` works end-to-end using Gemini and shows generated docstrings.
+- `docai generate "./src/**/*.py"` works end-to-end using Gemini and shows generated docstrings (low-level default, preview enabled).
 - `--inline --backup` modifies files safely and creates `.bak` files; restore works on error.
 - Switching back to `provider: "huggingface"` requires no code changes and behaves as before.
 

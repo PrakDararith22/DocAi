@@ -184,10 +184,16 @@ class PreviewSystem {
     console.log(chalk.green('✨ Generated Documentation:'));
     console.log(chalk.gray('┌─────────────────────────────────────────────────────────┐'));
     
-    const lines = item.docstring.split('\n');
-    lines.forEach(line => {
-      console.log(chalk.green(`│ ${line.padEnd(55)} │`));
-    });
+    // Check if docstring is empty or undefined
+    if (!item.docstring || item.docstring.trim() === '') {
+      console.log(chalk.red(`│ ❌ ERROR: No documentation generated                    │`));
+      console.log(chalk.red(`│ This item will be skipped automatically                │`));
+    } else {
+      const lines = item.docstring.split('\n');
+      lines.forEach(line => {
+        console.log(chalk.green(`│ ${line.padEnd(55)} │`));
+      });
+    }
     
     console.log(chalk.gray('└─────────────────────────────────────────────────────────┘'));
     console.log('');
@@ -235,6 +241,12 @@ class PreviewSystem {
    * @returns {Promise<string>} User decision
    */
   async getUserDecision(item, originalItem) {
+    // Auto-skip items with empty docstrings
+    if (!item.docstring || item.docstring.trim() === '') {
+      console.log(chalk.yellow('⏭️  Automatically skipping due to empty documentation'));
+      return 'skip';
+    }
+    
     if (!this.interactive) {
       // Non-interactive mode - show preview and return 'approve'
       console.log(chalk.gray('📝 Preview mode: Will be applied automatically'));

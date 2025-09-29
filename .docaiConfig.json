@@ -1,9 +1,8 @@
 {
   "project": "/Users/anbschool0005/docai",
   "lowLevel": true,
-  "highLevel": false,
   "inline": true,
-  "file": "./test_utilities.py",
+  "file": "./sth.py",
   "lang": "all",
   "output": "./docs",
   "preview": true,
@@ -26,5 +25,6 @@
   "provider": "gemini",
   "gemini_model": "gemini-2.5-flash",
   "gemini_api_key": "AIzaSyBHRn_iaKfvHTmhvMFniJb9wXKpV5Y_iso",
-  "saveConfig": true
+  "saveConfig": false,
+  "readme": true
 }

@@ -58,8 +58,9 @@ npm install
 # 2. Set up Gemini API (recommended)
 export GOOGLE_API_KEY="your_gemini_api_key_here"
 
-# 3. Generate documentation
-docai generate --low-level --preview --file "./src/**/*.py"
+# 3. Generate documentation (low-level is default)
+docai generate "./src/**/*.py"    # Function/class docs
+docai generate                    # Function/class docs on ./src/
 ```
 
 ## Installation
@@ -138,11 +139,11 @@ Create a `.docaiConfig.json` file in your project root:
 
 ```bash
 # Override provider and model via CLI
-docai generate --low-level --inline --provider gemini --model gemini-2.5-flash --file "./src/**/*.py"
+docai generate --inline --provider gemini --model gemini-2.5-flash "./src/**/*.py"
 
 # Use environment variables (recommended)
 export GOOGLE_API_KEY="your_gemini_api_key_here"
-docai generate --low-level --inline --file "./src/**/*.py"
+docai generate --inline "./src/**/*.py"
 ```
 
 ## Usage Examples
@@ -150,49 +151,58 @@ docai generate --low-level --inline --file "./src/**/*.py"
 ### Basic Documentation Generation
 
 ```bash
-# Preview documentation for Python files
-docai generate --low-level --preview --file "./src/**/*.py"
+# Generate function/class docs (inline by default, preview enabled)
+docai generate "./src/**/*.py"
 
-# Generate and apply documentation inline with backup
-docai generate --low-level --inline --backup --file "./src/**/*.py" --verbose
+# Generate docs on default ./src/ directory
+docai generate
+
+# Generate documentation with backup
+docai generate --backup "./src/**/*.py"
 
 # Generate documentation for specific file
-docai generate --low-level --inline --file "./src/utils.py"
+docai generate "./src/utils.py"
 
-# Generate documentation for JavaScript/TypeScript
-docai generate --low-level --inline --file "./src/**/*.{js,ts}"
+# Generate documentation for JavaScript/TypeScript (auto-detects language)
+docai generate "./src/**/*.{js,ts}"
+
+# Skip preview and apply directly
+docai generate --no-preview "./src/**/*.py"
 ```
 
 ### Advanced Usage
 
 ```bash
 # Interactive mode with approval prompts
-docai generate --low-level --interactive --file "./src/**/*.py"
+docai generate --interactive "./src/**/*.py"
 
 # Watch mode for continuous updates
-docai generate --watch --low-level --inline --file "./src/**/*.py"
+docai generate --watch "./src/**/*.py"
 
-# High-level README generation
-docai generate --high-level --output "./docs"
+# README generation (explicit)
+docai generate --readme --output "./docs" "./src"
 
 # Custom concurrency and performance settings
-docai generate --low-level --inline --concurrency 10 --max-memory 500 --file "./src/**/*.py"
+docai generate --concurrency 10 --max-memory 500 "./src/**/*.py"
 
 # Force overwrite existing documentation
-docai generate --low-level --inline --force --file "./src/**/*.py"
+docai generate --force "./src/**/*.py"
+
+# Quiet mode (reduce verbosity)
+docai generate --quiet "./src/**/*.py"
 ```
 
 ### Configuration Examples
 
 ```bash
 # Use specific provider and model
-docai generate --low-level --provider gemini --model gemini-2.5-flash --file "./src/**/*.py"
+docai generate --provider gemini --model gemini-2.5-flash "./src/**/*.py"
 
 # Save current settings to config file
-docai generate --low-level --inline --save-config
+docai generate --save-config "./src"
 
 # Use custom config file
-docai generate --config ./custom-config.json --low-level --file "./src/**/*.py"
+docai generate --config ./custom-config.json "./src/**/*.py"
 ```
 
 ## AI Providers
@@ -242,21 +252,21 @@ docai generate --help             # Show generate command help
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--low-level` | Generate function/class documentation | - |
-| `--high-level` | Generate README documentation | - |
-| `--inline` | Insert documentation directly into files | false |
-| `--preview` | Show generated documentation before applying | false |
-| `--interactive` | Interactive mode with approval prompts | false |
+| `[path]` | Target files or directory path (e.g., "./src/**/*.py") | ./src/ |
+| `--low-level` | Generate function/class documentation (default behavior) | true |
+| `--readme` | Generate README documentation for the project | false |
+| `--inline` | Insert documentation directly into files (auto-enabled for functions/classes) | true |
+| `--no-preview` | Skip preview and apply changes directly | false (preview enabled) |
+| `--interactive` | Interactive mode with approval prompts (default behavior) | true |
+| `--no-interactive` | Disable interactive mode - apply all changes automatically | false |
 | `--watch` | Monitor files for changes | false |
-| `--file <pattern>` | Target specific files or patterns | - |
-| `--lang <language>` | Filter by language (py, js, ts, all) | all |
 | `--project <path>` | Project root directory | current dir |
 | `--output <folder>` | Output directory for non-inline mode | ./docs |
 | `--provider <name>` | AI provider (gemini, huggingface) | auto-detect |
 | `--model <name>` | AI model to use | provider default |
 | `--backup` | Create backup files before changes | false |
 | `--force` | Overwrite existing documentation | false |
-| `--verbose` | Show detailed logging | false |
+| `--quiet` | Reduce output verbosity | false (verbose enabled) |
 | `--concurrency <n>` | Parallel processing limit | 5 |
 | `--config <path>` | Custom configuration file | .docaiConfig.json |
 

@@ -65,10 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Architecture**: Modular design with provider abstraction and factory pattern
 
 ### Enhanced CLI Commands
-- `docai generate --low-level --provider gemini`: Generate with specific AI provider
-- `docai generate --high-level --output ./docs`: Generate project documentation
+- `docai generate --provider gemini`: Generate with specific AI provider (low-level default)
+- `docai generate --readme --output ./docs`: Generate project documentation
 - `docai generate --watch --inline --backup`: Watch mode with safety features
-- `docai generate --interactive --preview`: Interactive approval workflow
+- `docai generate --interactive`: Interactive approval workflow (preview default)
+- `docai generate`: Minimal command (low-level on ./src/ by default)
 - `docai --version`: Show current version (1.0.0)
 
 ### Advanced Configuration

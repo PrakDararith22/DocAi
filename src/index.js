@@ -63,14 +63,13 @@ async function generateDocumentation(cliOptions) {
     console.log(chalk.gray(`Saved configuration to ${savedPath}`));
   }
 
-  // Validate options
-  if (!options.lowLevel && !options.highLevel) {
-    console.error(chalk.red('Error: You must specify either --low-level or --high-level'));
-    process.exit(1);
-  }
+  // Validate options - low-level is now default, so this check is no longer needed
 
-  if (options.inline && !options.lowLevel) {
-    console.error(chalk.red('Error: --inline requires --low-level'));
+  // For function/class documentation, inline is required
+  if (options.lowLevel && !options.inline) {
+    console.error(chalk.red('Error: Function/class documentation requires --inline flag'));
+    console.error(chalk.gray('Use: docai generate --inline [path]'));
+    console.error(chalk.gray('For README generation use: docai generate --readme [path]'));
     process.exit(1);
   }
 
@@ -214,34 +213,48 @@ async function generateDocumentation(cliOptions) {
     console.log(chalk.gray(`  Classes found: ${allClasses.length}`));
     console.log(chalk.gray(`  Files with errors: ${parseResults.summary.errors}`));
     
-    if (options.preview && !options.inline) {
-      // Show basic preview without AI generation
-      console.log(chalk.blue('\n📋 Preview Mode - Functions and Classes to be documented:'));
+    // Check for existing documentation before proceeding
+    const functionsWithDocs = allFunctions.filter(func => func.has_docstring);
+    const classesWithDocs = allClasses.filter(cls => cls.has_docstring);
+    const totalWithDocs = functionsWithDocs.length + classesWithDocs.length;
+    
+    if (totalWithDocs > 0 && !options.force && !options.highLevel) {
+      console.log(chalk.yellow(`\n📋 Found ${totalWithDocs} items that already have documentation:`));
       
-      // Show functions without docstrings
-      const functionsNeedingDocs = allFunctions.filter(func => !func.has_docstring);
-      if (functionsNeedingDocs.length > 0) {
-        console.log(chalk.yellow('\n🔧 Functions needing documentation:'));
-        functionsNeedingDocs.forEach((func, index) => {
-          console.log(chalk.gray(`  ${index + 1}. ${func.name}() in ${func.file_path} (line ${func.line})`));
-        });
+      functionsWithDocs.forEach((func, index) => {
+        console.log(chalk.gray(`  ${index + 1}. function: ${func.name}() in ${func.file_path} (line ${func.line})`));
+      });
+      classesWithDocs.forEach((cls, index) => {
+        console.log(chalk.gray(`  ${functionsWithDocs.length + index + 1}. class: ${cls.name} in ${cls.file_path} (line ${cls.line})`));
+      });
+      
+      const inquirer = require('inquirer').default || require('inquirer');
+      const overrideChoice = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'What would you like to do with existing documentation?',
+          choices: [
+            { name: '🔄 Override all existing documentation', value: 'override_all' },
+            { name: '⏭️  Skip existing documentation (do nothing)', value: 'skip_existing' },
+            { name: '🛑 Cancel operation', value: 'cancel' }
+          ]
+        }
+      ]);
+
+      if (overrideChoice.action === 'cancel') {
+        console.log(chalk.gray('Operation cancelled.'));
+        return;
+      } else if (overrideChoice.action === 'override_all') {
+        console.log(chalk.blue('✅ Will override existing documentation'));
+        // Set force flag to override existing docs
+        options.force = true;
+      } else {
+        console.log(chalk.blue('✅ Will skip existing documentation'));
       }
-      
-      // Show classes without docstrings
-      const classesNeedingDocs = allClasses.filter(cls => !cls.has_docstring);
-      if (classesNeedingDocs.length > 0) {
-        console.log(chalk.yellow('\n🏗️  Classes needing documentation:'));
-        classesNeedingDocs.forEach((cls, index) => {
-          console.log(chalk.gray(`  ${index + 1}. ${cls.name} in ${cls.file_path} (line ${cls.line})`));
-        });
-      }
-      
-      if (functionsNeedingDocs.length === 0 && classesNeedingDocs.length === 0) {
-        console.log(chalk.green('\n✅ All functions and classes already have documentation!'));
-      }
-      
-      console.log(chalk.gray('\nNext: AI-powered documentation generation will be implemented...'));
-    } else if (options.highLevel) {
+    }
+    
+    if (options.highLevel) {
       // Phase 5.1: High-level README Generation
       console.log(chalk.blue('\n📚 Phase 5.1: High-level README Generation'));
       console.log(chalk.gray('========================================='));
@@ -309,17 +322,18 @@ async function generateDocumentation(cliOptions) {
         
         // Prepare items for batch processing
         const allItems = [];
+        
         [...parseResults.python, ...parseResults.javascript, ...parseResults.typescript].forEach(fileResult => {
           if (fileResult.functions) {
             fileResult.functions.forEach(func => {
-              if (!func.has_docstring) {
+              if (!func.has_docstring || options.force) {
                 allItems.push({ type: 'function', ...func, file_path: fileResult.file_path, language: fileResult.language });
               }
             });
           }
           if (fileResult.classes) {
             fileResult.classes.forEach(cls => {
-              if (!cls.has_docstring) {
+              if (!cls.has_docstring || options.force) {
                 allItems.push({ type: 'class', ...cls, file_path: fileResult.file_path, language: fileResult.language });
               }
             });
