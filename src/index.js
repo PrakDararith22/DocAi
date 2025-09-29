@@ -9,6 +9,9 @@ const DocumentationGenerator = require('./documentationGenerator');
 const BackupManager = require('./backupManager');
 const FileModifier = require('./fileModifier');
 const ErrorManager = require('./errorManager');
+const PreviewSystem = require('./previewSystem');
+const ProgressManager = require('./progressManager');
+const WatchMode = require('./watchMode');
 const { resolveOptions, saveConfigFile } = require('./config');
 
 /**
@@ -47,8 +50,9 @@ async function generateDocumentation(cliOptions) {
     process.exit(1);
   }
 
-  // Initialize error manager
+  // Initialize managers
   const errorManager = new ErrorManager(options);
+  const progressManager = new ProgressManager(options);
 
   // Show what we're going to do
   console.log(chalk.yellow('Configuration:'));
@@ -58,15 +62,34 @@ async function generateDocumentation(cliOptions) {
   console.log(`  Inline: ${options.inline ? 'Yes' : 'No'}`);
   console.log(`  Preview: ${options.preview ? 'Yes' : 'No'}`);
   console.log(`  Backup: ${options.backup ? 'Yes' : 'No'}`);
+  console.log(`  Watch: ${options.watch ? 'Yes' : 'No'}`);
+  console.log(`  Interactive: ${options.interactive ? 'Yes' : 'No'}`);
   console.log(`  Strict: ${options.strict ? 'Yes' : 'No'}`);
   console.log('');
+
+  // Handle watch mode
+  if (options.watch) {
+    const watchMode = new WatchMode(options);
+    const fileDiscovery = new FileDiscovery(options);
+    const files = await fileDiscovery.discoverFiles();
+    
+    if (files.length === 0) {
+      console.log(chalk.yellow('No files found to watch.'));
+      return;
+    }
+    
+    await watchMode.startWatching(files, options);
+    return; // Watch mode runs indefinitely
+  }
 
   // Initialize file discovery
   const fileDiscovery = new FileDiscovery(options);
   
   try {
     // Discover files to process
+    const discoverySpinner = progressManager.startSpinner('discovery', '🔍 Discovering files...');
     const files = await fileDiscovery.discoverFiles();
+    progressManager.stopSpinner('discovery', 'succeed', `Found ${files.length} files`);
     
     if (files.length === 0) {
       console.log(chalk.yellow('No files found to process.'));
@@ -87,13 +110,15 @@ async function generateDocumentation(cliOptions) {
       process.exit(errorManager.getExitCode());
     }
     
-    console.log(chalk.green(`\n✅ Found ${validFiles.length} files ready for processing!`));
+    progressManager.log(`Found ${validFiles.length} files ready for processing!`, 'success');
     
     // Initialize parser manager
     const parserManager = new ParserManager(options);
     
     // Parse files to extract functions and classes
+    const parsingSpinner = progressManager.startSpinner('parsing', '🔍 Parsing files...');
     const parseResults = await parserManager.parseFiles(validFiles);
+    progressManager.stopSpinner('parsing', 'succeed', `Parsed ${parseResults.summary.parsedFiles} files`);
     
     // Handle parsing errors
     if (parseResults.summary.errors > 0) {
@@ -116,7 +141,8 @@ async function generateDocumentation(cliOptions) {
     console.log(chalk.gray(`  Classes found: ${allClasses.length}`));
     console.log(chalk.gray(`  Files with errors: ${parseResults.summary.errors}`));
     
-    if (options.preview) {
+    if (options.preview && !options.inline) {
+      // Show basic preview without AI generation
       console.log(chalk.blue('\n📋 Preview Mode - Functions and Classes to be documented:'));
       
       // Show functions without docstrings
@@ -167,8 +193,10 @@ async function generateDocumentation(cliOptions) {
           const styleAnalysis = new DocumentationAnalyzer(options).analyzeDocumentationStyles(parseResults);
           
         // Generate documentation using AI
+        const generationSpinner = progressManager.startSpinner('generation', '🤖 Generating documentation...');
         const docGenerator = new DocumentationGenerator(options);
         const generationResults = await docGenerator.generateDocumentation(parseResults, styleAnalysis);
+        progressManager.stopSpinner('generation', 'succeed', `Generated ${generationResults.summary.generatedFunctions + generationResults.summary.generatedClasses} items`);
         
         // Handle generation errors
         if (generationResults.summary.errors > 0) {
@@ -178,43 +206,47 @@ async function generateDocumentation(cliOptions) {
         }
         
         // Show generation results
-        console.log(chalk.green('\n✅ Documentation generation completed!'));
-        console.log(chalk.gray(`Generated: ${generationResults.summary.generatedFunctions} functions, ${generationResults.summary.generatedClasses} classes`));
-        console.log(chalk.gray(`Skipped: ${generationResults.summary.skippedFunctions} functions, ${generationResults.summary.skippedClasses} classes`));
-        console.log(chalk.gray(`Errors: ${generationResults.summary.errors}`));
+        progressManager.log(`Generated: ${generationResults.summary.generatedFunctions} functions, ${generationResults.summary.generatedClasses} classes`, 'success');
+        progressManager.log(`Skipped: ${generationResults.summary.skippedFunctions} functions, ${generationResults.summary.skippedClasses} classes`, 'info');
         
         if (generationResults.generated.length > 0) {
-          console.log(chalk.blue('\n📋 Generated Documentation Preview:'));
-          generationResults.generated.slice(0, 3).forEach((item, index) => {
-            console.log(chalk.gray(`  ${index + 1}. ${item.type} ${item.name}() in ${item.file}`));
-            console.log(chalk.gray(`     ${item.docstring.substring(0, 100)}...`));
-          });
-          if (generationResults.generated.length > 3) {
-            console.log(chalk.gray(`     ... and ${generationResults.generated.length - 3} more`));
+          // Initialize preview system
+          const previewSystem = new PreviewSystem(options);
+          
+          // Show preview and get user decisions
+          const previewResults = await previewSystem.showPreview(generationResults, parseResults);
+          
+          // Show final confirmation
+          const confirmed = await previewSystem.showFinalConfirmation(previewResults);
+          
+          if (!confirmed) {
+            console.log(chalk.yellow('Operation cancelled by user.'));
+            return;
           }
+          
+          // Update generation results with only approved items
+          generationResults.generated = previewResults.approved;
         }
         
         // Phase 3: File Operations & Safety
         if (options.inline && generationResults.generated.length > 0) {
-          console.log(chalk.blue('\n🔧 Phase 3: File Operations & Safety'));
-          console.log(chalk.gray('==================================='));
+          progressManager.log('Starting file operations...', 'info');
           
           // Initialize backup manager
           const backupManager = new BackupManager(options);
           
           // Create backups if requested
           if (options.backup) {
-            console.log(chalk.blue('\n💾 Creating file backups...'));
+            const backupSpinner = progressManager.startSpinner('backup', '💾 Creating file backups...');
             const filesToBackup = [...new Set(generationResults.generated.map(item => item.file))];
             const backupResults = await backupManager.createBackups(filesToBackup);
+            progressManager.stopSpinner('backup', 'succeed', `Backed up ${backupResults.successful.length} files`);
             
             if (backupResults.failed.length > 0) {
-              console.log(chalk.red(`❌ Failed to backup ${backupResults.failed.length} files`));
+              progressManager.log(`Failed to backup ${backupResults.failed.length} files`, 'error');
               backupResults.failed.forEach(failure => {
                 errorManager.handleFileError(failure.filePath, new Error(failure.error), 'backup');
               });
-            } else {
-              console.log(chalk.green(`✅ Successfully backed up ${backupResults.successful.length} files`));
             }
           }
           
@@ -222,8 +254,9 @@ async function generateDocumentation(cliOptions) {
           const fileModifier = new FileModifier(options);
           
           // Insert docstrings into files
-          console.log(chalk.blue('\n📝 Inserting docstrings into files...'));
+          const modificationSpinner = progressManager.startSpinner('modification', '📝 Inserting docstrings...');
           const modificationResults = await fileModifier.insertDocstrings(generationResults, backupManager);
+          progressManager.stopSpinner('modification', 'succeed', `Modified ${modificationResults.summary.modifiedFiles} files`);
           
           // Handle modification errors
           if (modificationResults.failed.length > 0) {
@@ -235,20 +268,18 @@ async function generateDocumentation(cliOptions) {
           // Update statistics
           modificationResults.successful.forEach(result => {
             errorManager.updateStats('success', { filePath: result.filePath, modifications: result.modifications });
+            progressManager.logFileResult(result.filePath, result);
           });
           modificationResults.failed.forEach(result => {
             errorManager.updateStats('failed', { filePath: result.filePath });
+            progressManager.logFileResult(result.filePath, result);
           });
-          
-          console.log(chalk.green(`\n✅ File modification completed!`));
-          console.log(chalk.gray(`Modified: ${modificationResults.summary.modifiedFiles} files`));
-          console.log(chalk.gray(`Errors: ${modificationResults.summary.errorFiles} files`));
           
           // Cleanup backups if requested
           if (options.cleanup && options.backup) {
-            console.log(chalk.blue('\n🧹 Cleaning up backup files...'));
+            const cleanupSpinner = progressManager.startSpinner('cleanup', '🧹 Cleaning up backup files...');
             const cleanupResults = await backupManager.cleanupBackups();
-            console.log(chalk.green(`✅ Cleaned up ${cleanupResults.cleaned.length} backup files`));
+            progressManager.stopSpinner('cleanup', 'succeed', `Cleaned up ${cleanupResults.cleaned.length} files`);
           }
         }
         } else {
@@ -262,15 +293,18 @@ async function generateDocumentation(cliOptions) {
       }
     }
     
-    // Print final summary and handle error logging
-    errorManager.printSummary();
+    // Show final summary
+    progressManager.showFinalSummary({
+      summary: errorManager.stats,
+      errors: errorManager.errors
+    });
     
     // Save error log if requested
     if (options.logErrors) {
       const logPath = path.join(options.project, 'docai-errors.json');
       const logResult = await errorManager.saveErrorLog(logPath);
       if (logResult.success) {
-        console.log(chalk.gray(`\n📄 Error log saved to: ${logResult.logPath}`));
+        progressManager.log(`Error log saved to: ${logResult.logPath}`, 'info');
       }
     }
     
