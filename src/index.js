@@ -3,6 +3,8 @@ const ora = require('ora').default || require('ora');
 const FileDiscovery = require('./fileDiscovery');
 const ParserManager = require('./parserManager');
 const HuggingFaceAPI = require('./huggingFaceAPI');
+const DocumentationAnalyzer = require('./documentationAnalyzer');
+const DocumentationGenerator = require('./documentationGenerator');
 const { resolveOptions, saveConfigFile } = require('./config');
 
 /**
@@ -139,9 +141,29 @@ async function generateDocumentation(cliOptions) {
         if (allFunctions.length > 0 || allClasses.length > 0) {
           console.log(chalk.blue('\n📝 Generating AI-powered documentation...'));
           
-          // TODO: Implement actual documentation generation
-          console.log(chalk.gray('Documentation generation will be implemented in Phase 2.3'));
-          console.log(chalk.gray(`Found ${allFunctions.length} functions and ${allClasses.length} classes to document.`));
+          // Analyze existing documentation styles
+          const styleAnalysis = new DocumentationAnalyzer(options).analyzeDocumentationStyles(parseResults);
+          
+          // Generate documentation using AI
+          const docGenerator = new DocumentationGenerator(options);
+          const generationResults = await docGenerator.generateDocumentation(parseResults, styleAnalysis);
+          
+          // Show final results
+          console.log(chalk.green('\n✅ Documentation generation completed!'));
+          console.log(chalk.gray(`Generated: ${generationResults.summary.generatedFunctions} functions, ${generationResults.summary.generatedClasses} classes`));
+          console.log(chalk.gray(`Skipped: ${generationResults.summary.skippedFunctions} functions, ${generationResults.summary.skippedClasses} classes`));
+          console.log(chalk.gray(`Errors: ${generationResults.summary.errors}`));
+          
+          if (generationResults.generated.length > 0) {
+            console.log(chalk.blue('\n📋 Generated Documentation Preview:'));
+            generationResults.generated.slice(0, 3).forEach((item, index) => {
+              console.log(chalk.gray(`  ${index + 1}. ${item.type} ${item.name}() in ${item.file}`));
+              console.log(chalk.gray(`     ${item.docstring.substring(0, 100)}...`));
+            });
+            if (generationResults.generated.length > 3) {
+              console.log(chalk.gray(`     ... and ${generationResults.generated.length - 3} more`));
+            }
+          }
         } else {
           console.log(chalk.yellow('No functions or classes found to document.'));
         }

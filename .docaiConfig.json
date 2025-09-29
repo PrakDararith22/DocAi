@@ -3,7 +3,7 @@
   "lowLevel": true,
   "highLevel": false,
   "inline": false,
-  "file": "./test/integration_test.py",
+  "file": "./test/phase2_test.py",
   "lang": "all",
   "output": "./docs",
   "preview": false,
