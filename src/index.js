@@ -1,3 +1,4 @@
+const path = require('path');
 const chalk = require('chalk').default || require('chalk');
 const ora = require('ora').default || require('ora');
 const FileDiscovery = require('./fileDiscovery');
@@ -5,6 +6,9 @@ const ParserManager = require('./parserManager');
 const HuggingFaceAPI = require('./huggingFaceAPI');
 const DocumentationAnalyzer = require('./documentationAnalyzer');
 const DocumentationGenerator = require('./documentationGenerator');
+const BackupManager = require('./backupManager');
+const FileModifier = require('./fileModifier');
+const ErrorManager = require('./errorManager');
 const { resolveOptions, saveConfigFile } = require('./config');
 
 /**
@@ -43,6 +47,9 @@ async function generateDocumentation(cliOptions) {
     process.exit(1);
   }
 
+  // Initialize error manager
+  const errorManager = new ErrorManager(options);
+
   // Show what we're going to do
   console.log(chalk.yellow('Configuration:'));
   console.log(`  Project: ${options.project}`);
@@ -51,6 +58,7 @@ async function generateDocumentation(cliOptions) {
   console.log(`  Inline: ${options.inline ? 'Yes' : 'No'}`);
   console.log(`  Preview: ${options.preview ? 'Yes' : 'No'}`);
   console.log(`  Backup: ${options.backup ? 'Yes' : 'No'}`);
+  console.log(`  Strict: ${options.strict ? 'Yes' : 'No'}`);
   console.log('');
 
   // Initialize file discovery
@@ -73,8 +81,10 @@ async function generateDocumentation(cliOptions) {
       console.log(chalk.red('No valid files found to process.'));
       if (errors.length > 0) {
         console.log(chalk.red('All files had access issues.'));
+        errors.forEach(error => errorManager.handleFileError(error.filePath, new Error(error.message), 'validation'));
       }
-      return;
+      errorManager.printSummary();
+      process.exit(errorManager.getExitCode());
     }
     
     console.log(chalk.green(`\n✅ Found ${validFiles.length} files ready for processing!`));
@@ -84,6 +94,18 @@ async function generateDocumentation(cliOptions) {
     
     // Parse files to extract functions and classes
     const parseResults = await parserManager.parseFiles(validFiles);
+    
+    // Handle parsing errors
+    if (parseResults.summary.errors > 0) {
+      // Check all language results for errors
+      [...parseResults.python, ...parseResults.javascript, ...parseResults.typescript].forEach(fileResult => {
+        if (fileResult.errors && fileResult.errors.length > 0) {
+          fileResult.errors.forEach(error => {
+            errorManager.handleParsingError(fileResult.file_path, new Error(error), fileResult.language);
+          });
+        }
+      });
+    }
     
     // Get all functions and classes for processing
     const allFunctions = parserManager.getAllFunctions(parseResults);
@@ -144,39 +166,122 @@ async function generateDocumentation(cliOptions) {
           // Analyze existing documentation styles
           const styleAnalysis = new DocumentationAnalyzer(options).analyzeDocumentationStyles(parseResults);
           
-          // Generate documentation using AI
-          const docGenerator = new DocumentationGenerator(options);
-          const generationResults = await docGenerator.generateDocumentation(parseResults, styleAnalysis);
+        // Generate documentation using AI
+        const docGenerator = new DocumentationGenerator(options);
+        const generationResults = await docGenerator.generateDocumentation(parseResults, styleAnalysis);
+        
+        // Handle generation errors
+        if (generationResults.summary.errors > 0) {
+          generationResults.errors.forEach(error => {
+            errorManager.handleError(new Error(error), 'AI Generation', {});
+          });
+        }
+        
+        // Show generation results
+        console.log(chalk.green('\n✅ Documentation generation completed!'));
+        console.log(chalk.gray(`Generated: ${generationResults.summary.generatedFunctions} functions, ${generationResults.summary.generatedClasses} classes`));
+        console.log(chalk.gray(`Skipped: ${generationResults.summary.skippedFunctions} functions, ${generationResults.summary.skippedClasses} classes`));
+        console.log(chalk.gray(`Errors: ${generationResults.summary.errors}`));
+        
+        if (generationResults.generated.length > 0) {
+          console.log(chalk.blue('\n📋 Generated Documentation Preview:'));
+          generationResults.generated.slice(0, 3).forEach((item, index) => {
+            console.log(chalk.gray(`  ${index + 1}. ${item.type} ${item.name}() in ${item.file}`));
+            console.log(chalk.gray(`     ${item.docstring.substring(0, 100)}...`));
+          });
+          if (generationResults.generated.length > 3) {
+            console.log(chalk.gray(`     ... and ${generationResults.generated.length - 3} more`));
+          }
+        }
+        
+        // Phase 3: File Operations & Safety
+        if (options.inline && generationResults.generated.length > 0) {
+          console.log(chalk.blue('\n🔧 Phase 3: File Operations & Safety'));
+          console.log(chalk.gray('==================================='));
           
-          // Show final results
-          console.log(chalk.green('\n✅ Documentation generation completed!'));
-          console.log(chalk.gray(`Generated: ${generationResults.summary.generatedFunctions} functions, ${generationResults.summary.generatedClasses} classes`));
-          console.log(chalk.gray(`Skipped: ${generationResults.summary.skippedFunctions} functions, ${generationResults.summary.skippedClasses} classes`));
-          console.log(chalk.gray(`Errors: ${generationResults.summary.errors}`));
+          // Initialize backup manager
+          const backupManager = new BackupManager(options);
           
-          if (generationResults.generated.length > 0) {
-            console.log(chalk.blue('\n📋 Generated Documentation Preview:'));
-            generationResults.generated.slice(0, 3).forEach((item, index) => {
-              console.log(chalk.gray(`  ${index + 1}. ${item.type} ${item.name}() in ${item.file}`));
-              console.log(chalk.gray(`     ${item.docstring.substring(0, 100)}...`));
-            });
-            if (generationResults.generated.length > 3) {
-              console.log(chalk.gray(`     ... and ${generationResults.generated.length - 3} more`));
+          // Create backups if requested
+          if (options.backup) {
+            console.log(chalk.blue('\n💾 Creating file backups...'));
+            const filesToBackup = [...new Set(generationResults.generated.map(item => item.file))];
+            const backupResults = await backupManager.createBackups(filesToBackup);
+            
+            if (backupResults.failed.length > 0) {
+              console.log(chalk.red(`❌ Failed to backup ${backupResults.failed.length} files`));
+              backupResults.failed.forEach(failure => {
+                errorManager.handleFileError(failure.filePath, new Error(failure.error), 'backup');
+              });
+            } else {
+              console.log(chalk.green(`✅ Successfully backed up ${backupResults.successful.length} files`));
             }
           }
+          
+          // Initialize file modifier
+          const fileModifier = new FileModifier(options);
+          
+          // Insert docstrings into files
+          console.log(chalk.blue('\n📝 Inserting docstrings into files...'));
+          const modificationResults = await fileModifier.insertDocstrings(generationResults, backupManager);
+          
+          // Handle modification errors
+          if (modificationResults.failed.length > 0) {
+            modificationResults.failed.forEach(failure => {
+              errorManager.handleFileError(failure.filePath, new Error(failure.error), 'modification');
+            });
+          }
+          
+          // Update statistics
+          modificationResults.successful.forEach(result => {
+            errorManager.updateStats('success', { filePath: result.filePath, modifications: result.modifications });
+          });
+          modificationResults.failed.forEach(result => {
+            errorManager.updateStats('failed', { filePath: result.filePath });
+          });
+          
+          console.log(chalk.green(`\n✅ File modification completed!`));
+          console.log(chalk.gray(`Modified: ${modificationResults.summary.modifiedFiles} files`));
+          console.log(chalk.gray(`Errors: ${modificationResults.summary.errorFiles} files`));
+          
+          // Cleanup backups if requested
+          if (options.cleanup && options.backup) {
+            console.log(chalk.blue('\n🧹 Cleaning up backup files...'));
+            const cleanupResults = await backupManager.cleanupBackups();
+            console.log(chalk.green(`✅ Cleaned up ${cleanupResults.cleaned.length} backup files`));
+          }
+        }
         } else {
           console.log(chalk.yellow('No functions or classes found to document.'));
         }
         
       } catch (error) {
+        errorManager.handleError(error, 'AI API Initialization', {});
         console.error(chalk.red('Error initializing AI API:'), error.message);
         throw error;
       }
     }
     
+    // Print final summary and handle error logging
+    errorManager.printSummary();
+    
+    // Save error log if requested
+    if (options.logErrors) {
+      const logPath = path.join(options.project, 'docai-errors.json');
+      const logResult = await errorManager.saveErrorLog(logPath);
+      if (logResult.success) {
+        console.log(chalk.gray(`\n📄 Error log saved to: ${logResult.logPath}`));
+      }
+    }
+    
+    // Exit with appropriate code
+    process.exit(errorManager.getExitCode());
+    
   } catch (error) {
+    errorManager.handleError(error, 'File Discovery', {});
     console.error(chalk.red('Error during file discovery:'), error.message);
-    throw error;
+    errorManager.printSummary();
+    process.exit(errorManager.getExitCode());
   }
 }
 

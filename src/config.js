@@ -18,6 +18,10 @@ function getDefaultOptions(cwd) {
     force: false,
     skipErrors: false,
     backup: false,
+    cleanup: false,
+    timestamped: false,
+    strict: false,
+    logErrors: false,
     verbose: false,
     style: 'google',
   };

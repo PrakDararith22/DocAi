@@ -64,6 +64,7 @@ class DocumentationGenerator {
             type: 'function',
             name: func.name,
             file: func.file_path,
+            line: func.line,
             docstring: docstring.text,
             language: func.language
           });
@@ -108,6 +109,7 @@ class DocumentationGenerator {
             type: 'class',
             name: cls.name,
             file: cls.file_path,
+            line: cls.line,
             docstring: docstring.text,
             language: cls.language
           });
