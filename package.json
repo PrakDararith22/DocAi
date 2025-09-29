@@ -9,6 +9,11 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:performance": "jest tests/performance",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "dev": "node --watch src/index.js",
     "doc:watch": "nodemon --watch src --watch test --ext py,js,ts --exec \"docai generate --low-level --inline --backup --file \\\"./src/**/*.{py,js,ts}\\\" --file \\\"./test/**/*.{py,js,ts}\\\" --verbose\"",
     "doc:watch:py": "nodemon --watch . --ext py --exec \"docai generate --low-level --inline --backup --file \\\"./**/*.py\\\" --verbose\"",
@@ -43,6 +48,9 @@
     "ora": "^7.0.1"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/preset-env": "^7.28.3",
+    "babel-jest": "^30.2.0",
     "eslint": "^8.55.0",
     "jest": "^29.7.0",
     "nodemon": "^3.1.10"

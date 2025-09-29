@@ -1,0 +1,45 @@
+// Mock chalk module
+const chalk = {
+  red: (text) => text,
+  green: (text) => text,
+  yellow: (text) => text,
+  blue: (text) => text,
+  magenta: (text) => text,
+  cyan: (text) => text,
+  white: (text) => text,
+  gray: (text) => text,
+  grey: (text) => text,
+  black: (text) => text,
+  bold: (text) => text,
+  dim: (text) => text,
+  italic: (text) => text,
+  underline: (text) => text,
+  strikethrough: (text) => text,
+  reset: (text) => text,
+  inverse: (text) => text,
+  hidden: (text) => text,
+  visible: (text) => text,
+  default: {
+    red: (text) => text,
+    green: (text) => text,
+    yellow: (text) => text,
+    blue: (text) => text,
+    magenta: (text) => text,
+    cyan: (text) => text,
+    white: (text) => text,
+    gray: (text) => text,
+    grey: (text) => text,
+    black: (text) => text,
+    bold: (text) => text,
+    dim: (text) => text,
+    italic: (text) => text,
+    underline: (text) => text,
+    strikethrough: (text) => text,
+    reset: (text) => text,
+    inverse: (text) => text,
+    hidden: (text) => text,
+    visible: (text) => text
+  }
+};
+
+module.exports = chalk;
