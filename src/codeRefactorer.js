@@ -59,6 +59,7 @@ class CodeRefactorer {
    */
   buildPrompt(code, language, focusAreas, analysis) {
     const focusDescription = this.getFocusDescription(focusAreas);
+    const explainMode = this.options.explain ? '\n7. Include detailed "explanation" field with technical details' : '';
     
     const prompt = `You are an expert code refactoring assistant. Analyze this ${language} code and suggest refactorings.
 
@@ -80,7 +81,7 @@ IMPORTANT INSTRUCTIONS:
 3. Each suggestion must include exact line numbers and code
 4. Respond ONLY with valid JSON (no markdown, no explanations outside JSON)
 5. Preserve the original code's functionality
-6. Keep suggestions focused and practical
+6. Keep suggestions focused and practical${explainMode}
 
 REQUIRED JSON FORMAT:
 {
@@ -96,7 +97,7 @@ REQUIRED JSON FORMAT:
       "originalCode": "exact code from lines 10-15",
       "refactoredCode": "improved version of the code",
       "reason": "Why this improves the code (benefits)",
-      "estimatedImprovement": "e.g., '2x faster', 'more readable', 'follows PEP8'"
+      "estimatedImprovement": "e.g., '2x faster', 'more readable', 'follows PEP8'"${this.options.explain ? ',\n      "explanation": "Technical details about why this works, how it improves performance/readability, what patterns it follows"' : ''}
     }
   ]
 }

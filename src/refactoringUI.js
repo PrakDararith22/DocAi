@@ -56,6 +56,13 @@ class RefactoringUI {
       console.log(chalk.gray(`    ${suggestion.description}`));
       console.log('');
     }
+    
+    // Show detailed explanation if enabled
+    if (this.options.explain && suggestion.explanation) {
+      console.log(chalk.cyan('    📖 Detailed Explanation:'));
+      console.log(chalk.gray(`    ${suggestion.explanation}`));
+      console.log('');
+    }
 
     // Show code comparison
     console.log(chalk.gray('    Current:'));

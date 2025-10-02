@@ -365,11 +365,19 @@ This document defines how we develop features and complete phases in DocAI. It e
 
 **When phase is done:**
 
-1. **Verify All Requirements**
-   - Check README.md success criteria
-   - Check ISSUES_SCAN.md (all HIGH priority fixed)
-   - Check all design points implemented
-   - Verify nothing missed
+1. **Verify All Requirements (COMPLETE CHECKLIST)**
+   - ✅ Check README.md success criteria (ALL items)
+   - ✅ Check ISSUES_SCAN.md (all HIGH priority fixed)
+   - ✅ Check ALL features listed in README.md
+   - ✅ Check ALL commands and options
+   - ✅ Check ALL user flow steps
+   - ✅ Check ALL architecture components
+   - ✅ Go through design LINE BY LINE
+   - ✅ Create detailed verification checklist
+   - ✅ Mark each item as implemented or missing
+   - ✅ Implement ALL missing items before proceeding
+   - ⚠️ DO NOT skip any design point
+   - ⚠️ DO NOT assume something is complete without verification
 
 2. **Mark TODO Complete**
    - Check all items done
