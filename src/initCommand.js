@@ -267,17 +267,13 @@ class ProjectInitializer {
       },
       {
         type: 'confirm',
-        name: 'backup',
-        message: 'Create backup files before changes?',
-        default: true
-      },
-      {
-        type: 'confirm',
         name: 'verbose',
         message: 'Enable verbose output?',
         default: false
       }
     );
+    
+    // Note: Backup is always enabled for safety (auto-removed on success)
 
     const answers = await inquirer.prompt(questions);
     return answers;
@@ -343,8 +339,7 @@ class ProjectInitializer {
         debounce: 2000,
         force: false,
         skipErrors: true,
-        backup: answers.backup,
-        cleanup: false,
+        // backup is always enabled (auto-removed on success)
         timestamped: false,
         strict: false,
         logErrors: true,

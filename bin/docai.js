@@ -48,8 +48,6 @@ program
   .option('--debounce <ms>', 'Debounce delay for watch mode (default: 2000ms)', '2000')
   .option('--force', 'Overwrite existing documentation')
   .option('--skip-errors', 'Continue processing even if some files have errors')
-  .option('--backup', 'Create backup files before making changes')
-  .option('--cleanup', 'Remove backup files after successful operation')
   .option('--timestamped', 'Create timestamped backup files (e.g., file_20250925_140530.py.bak)')
   .option('--strict', 'Stop processing on first error')
   .option('--log-errors', 'Save error log to file (docai-errors.json)')

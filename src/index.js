@@ -477,19 +477,20 @@ async function generateDocumentation(cliOptions) {
           // Initialize backup manager
           const backupManager = new BackupManager(options);
           
-          // Create backups if requested
-          if (options.backup) {
-            const backupSpinner = progressManager.startSpinner('backup', '💾 Creating file backups...');
-            const filesToBackup = [...new Set(generationResults.generated.map(item => item.file))];
-            const backupResults = await backupManager.createBackups(filesToBackup);
-            progressManager.stopSpinner('backup', 'succeed', `Backed up ${backupResults.successful.length} files`);
-            
-            if (backupResults.failed.length > 0) {
-              progressManager.log(`Failed to backup ${backupResults.failed.length} files`, 'error');
-              backupResults.failed.forEach(failure => {
-                errorManager.handleFileError(failure.filePath, new Error(failure.error), 'backup');
-              });
-            }
+          // ALWAYS create backups (safety first!)
+          const backupSpinner = progressManager.startSpinner('backup', '💾 Creating safety backups...');
+          const filesToBackup = [...new Set(generationResults.generated.map(item => item.file))];
+          const backupResults = await backupManager.createBackups(filesToBackup);
+          progressManager.stopSpinner('backup', 'succeed', `Backed up ${backupResults.successful.length} files`);
+          
+          if (backupResults.failed.length > 0) {
+            progressManager.log(`Failed to backup ${backupResults.failed.length} files`, 'error');
+            backupResults.failed.forEach(failure => {
+              errorManager.handleFileError(failure.filePath, new Error(failure.error), 'backup');
+            });
+            // If backup fails, don't proceed
+            console.log(chalk.red('\n❌ Cannot proceed without backups. Please check file permissions.'));
+            process.exit(1);
           }
           
           // Initialize file modifier
@@ -500,11 +501,20 @@ async function generateDocumentation(cliOptions) {
           const modificationResults = await fileModifier.insertDocstrings(generationResults, backupManager);
           progressManager.stopSpinner('modification', 'succeed', `Modified ${modificationResults.summary.modifiedFiles} files`);
           
-          // Handle modification errors
+          // Handle modification errors and restore if needed
           if (modificationResults.failed.length > 0) {
-            modificationResults.failed.forEach(failure => {
+            console.log(chalk.red('\n⚠️  Some files failed to modify. Restoring from backups...'));
+            
+            // Restore failed files from backup
+            for (const failure of modificationResults.failed) {
+              const restoreResult = await backupManager.restoreFromBackup(failure.filePath);
+              if (restoreResult.success) {
+                console.log(chalk.green(`✓ Restored ${path.basename(failure.filePath)}`));
+              } else {
+                console.log(chalk.red(`✗ Failed to restore ${path.basename(failure.filePath)}`));
+              }
               errorManager.handleFileError(failure.filePath, new Error(failure.error), 'modification');
-            });
+            }
           }
           
           // Update statistics
@@ -517,11 +527,20 @@ async function generateDocumentation(cliOptions) {
             progressManager.logFileResult(result.filePath, result);
           });
           
-          // Cleanup backups if requested
-          if (options.cleanup && options.backup) {
+          // Auto-cleanup backups on success
+          if (modificationResults.successful.length > 0 && modificationResults.failed.length === 0) {
+            // All successful - clean up backups
             const cleanupSpinner = progressManager.startSpinner('cleanup', '🧹 Cleaning up backup files...');
             const cleanupResults = await backupManager.cleanupBackups();
-            progressManager.stopSpinner('cleanup', 'succeed', `Cleaned up ${cleanupResults.cleaned.length} files`);
+            progressManager.stopSpinner('cleanup', 'succeed', `Cleaned up ${cleanupResults.cleaned.length} backup files`);
+            
+            if (!options.verbose) {
+              console.log(chalk.gray('💡 Backups automatically removed (all changes successful)'));
+            }
+          } else if (modificationResults.failed.length > 0) {
+            // Some failed - keep backups
+            console.log(chalk.yellow('\n💾 Backup files kept for failed modifications'));
+            console.log(chalk.gray('   You can manually restore from .bak files if needed'));
           }
         }
         } else {
