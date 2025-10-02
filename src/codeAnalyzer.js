@@ -1,5 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
+const PythonParser = require('./pythonParser');
+const JSParser = require('./jsParser');
 
 /**
  * Code Analyzer
@@ -9,6 +11,9 @@ class CodeAnalyzer {
   constructor(options = {}) {
     this.options = options;
     this.verbose = options.verbose || false;
+    // Use existing parsers (per README.md design specification)
+    this.pythonParser = new PythonParser({ ...options, skipErrors: true });
+    this.jsParser = new JSParser({ ...options, skipErrors: true });
   }
 
   /**
@@ -28,11 +33,12 @@ class CodeAnalyzer {
         throw new Error(`File too large (${lineCount} lines). Maximum: 1,000 lines.`);
       }
 
-      // Get metrics
+      // Get metrics (use parser for accurate function count)
+      const functionCount = await this.getFunctionCount(code, language, filePath);
       const metrics = {
         language,
         lineCount,
-        functionCount: this.getFunctionCount(code, language),
+        functionCount,
         complexity: this.getComplexity(code, language),
         averageLineLength: this.getAverageLineLength(code)
       };
@@ -104,14 +110,31 @@ class CodeAnalyzer {
   }
 
   /**
-   * Get function count (simple pattern matching)
+   * Get function count using proper AST parsers
    * @param {string} code - Source code
    * @param {string} language - Programming language
-   * @returns {number} Number of functions
+   * @param {string} filePath - File path for parser
+   * @returns {Promise<number>} Number of functions
    */
-  getFunctionCount(code, language) {
-    let pattern;
+  async getFunctionCount(code, language, filePath) {
+    // Use proper parsers per design specification
+    try {
+      if (language === 'python' && filePath) {
+        const parseResult = await this.pythonParser.parseFile(filePath);
+        return parseResult.functions ? parseResult.functions.length : 0;
+      } else if ((language === 'javascript' || language === 'typescript') && filePath) {
+        const parseResult = await this.jsParser.parseFile(filePath);
+        return parseResult.functions ? parseResult.functions.length : 0;
+      }
+    } catch (error) {
+      // Fallback to regex if parser fails
+      if (this.verbose) {
+        console.log(`Parser failed, using regex fallback: ${error.message}`);
+      }
+    }
     
+    // Fallback: simple pattern matching
+    let pattern;
     switch (language) {
       case 'python':
         pattern = /^\s*def\s+\w+\s*\(/gm;

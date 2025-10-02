@@ -29,7 +29,7 @@
   - [x] `getCodeContext(code, startLine, endLine)`
 - [x] Write unit tests
 - [x] Test with sample Python files
-- [ ] Test with sample JavaScript files
+- [x] Test with sample JavaScript files
 
 ---
 
