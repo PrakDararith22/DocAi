@@ -33,20 +33,30 @@ class PerformanceOptimizer {
     const startTime = Date.now();
     this.performanceMetrics.phases.parallelProcessing = { startTime };
 
-    if (this.verbose) {
-      console.log(chalk.blue(`\n⚡ Performance Mode: Processing ${files.length} files with concurrency ${this.concurrency}`));
-    }
+    console.log(chalk.blue(`\n⚡ Processing ${files.length} files (${this.concurrency} at a time)...`));
     
     const results = [];
     const batches = this.createBatches(files, this.concurrency);
     
+    // Create progress bar
+    const cliProgress = require('cli-progress');
+    const progressBar = new cliProgress.SingleBar({
+      format: chalk.cyan('{bar}') + ' | {percentage}% | {value}/{total} files | Batch {batch}/{totalBatches}',
+      barCompleteChar: '\u2588',
+      barIncompleteChar: '\u2591',
+      hideCursor: true
+    });
+    
+    progressBar.start(files.length, 0, {
+      batch: 0,
+      totalBatches: batches.length
+    });
+    
+    let processedCount = 0;
+    
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
       const batchStartTime = Date.now();
-      
-      if (this.verbose) {
-        console.log(chalk.gray(`Processing batch ${i + 1}/${batches.length} (${batch.length} files)`));
-      }
 
       // Process batch in parallel
       const batchPromises = batch.map(async (file, index) => {
@@ -62,24 +72,31 @@ class PerformanceOptimizer {
 
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
+      
+      // Update progress
+      processedCount += batch.length;
+      progressBar.update(processedCount, {
+        batch: i + 1,
+        totalBatches: batches.length
+      });
 
       const batchDuration = Date.now() - batchStartTime;
       if (this.verbose) {
-        console.log(chalk.gray(`  Batch ${i + 1} completed in ${batchDuration}ms`));
+        console.log(chalk.gray(`\n  Batch ${i + 1} completed in ${batchDuration}ms`));
       }
 
       // Memory check between batches
       await this.checkMemoryUsage();
     }
+    
+    progressBar.stop();
 
     this.performanceMetrics.phases.parallelProcessing.endTime = Date.now();
     this.performanceMetrics.phases.parallelProcessing.duration = 
       this.performanceMetrics.phases.parallelProcessing.endTime - this.performanceMetrics.phases.parallelProcessing.startTime;
 
     const totalDuration = Date.now() - startTime;
-    if (this.verbose) {
-      console.log(chalk.green(`✅ Parallel processing completed in ${totalDuration}ms`));
-    }
+    console.log(chalk.green(`✅ Completed in ${(totalDuration / 1000).toFixed(1)}s`));
     
     return results;
   }

@@ -35,8 +35,6 @@ program
   .argument('[path]', 'Target files or directory path (e.g., "./src/**/*.py" or "./src")', './src/')
   .option('--low-level', 'Generate docstrings for functions and classes (default)')
   .option('--readme', 'Generate README documentation for the project')
-  .option('--concurrency <number>', 'Set concurrency level for parallel processing (default: 5)', '5')
-  .option('--max-memory <mb>', 'Set maximum memory usage in MB (default: 200)', '200')
   .option('--benchmark', 'Run performance benchmark tests')
   .option('--project <path>', 'Project root directory', process.cwd())
   .option('--output <folder>', 'Save documentation to separate folder instead of modifying source files')

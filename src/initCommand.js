@@ -266,6 +266,18 @@ class ProjectInitializer {
         default: true
       },
       {
+        type: 'list',
+        name: 'concurrency',
+        message: 'How many files to process in parallel?',
+        choices: [
+          { name: 'Low (3 files) - Slower but safer', value: 3 },
+          { name: 'Medium (5 files) - Balanced (Recommended)', value: 5 },
+          { name: 'High (10 files) - Faster', value: 10 },
+          { name: 'Very High (15 files) - Maximum speed', value: 15 }
+        ],
+        default: 1 // Medium (5)
+      },
+      {
         type: 'confirm',
         name: 'verbose',
         message: 'Enable verbose output?',
@@ -343,7 +355,7 @@ class ProjectInitializer {
         timestamped: false,
         strict: false,
         logErrors: true,
-        concurrency: 5,
+        concurrency: answers.concurrency,
         maxMemory: 200,
         benchmark: false,
         verbose: answers.verbose,
