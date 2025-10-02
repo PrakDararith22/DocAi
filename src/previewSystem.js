@@ -244,25 +244,47 @@ class PreviewSystem {
       return 'approve';
     }
 
-    const choices = [
-      { name: 'Yes, add this', value: 'approve' },
-      { name: 'No, skip this', value: 'reject' }
-    ];
+    // Check if this function already has documentation
+    const hasExisting = originalItem && originalItem.has_docstring;
+    
+    let message, choices;
+    
+    if (hasExisting) {
+      // Function already has docs - ask if they want to override
+      message = chalk.yellow('⚠️  This function already has documentation. Override it?');
+      choices = [
+        { name: 'Yes, replace with new documentation', value: 'approve' },
+        { name: 'No, keep existing documentation', value: 'reject' }
+      ];
+    } else {
+      // New documentation - normal prompt
+      message = 'Add this documentation?';
+      choices = [
+        { name: 'Yes, add this', value: 'approve' },
+        { name: 'No, skip this', value: 'reject' }
+      ];
+    }
 
     // Add batch options for similar items
-    if (this.batchApproval && !originalItem?.has_docstring) {
-      choices.push(
-        { name: 'Yes to all remaining', value: 'approve_all_functions' }
-      );
+    if (this.batchApproval) {
+      if (hasExisting) {
+        choices.push(
+          { name: 'Yes to all remaining (override all)', value: 'approve_all_functions' }
+        );
+      } else {
+        choices.push(
+          { name: 'Yes to all remaining', value: 'approve_all_functions' }
+        );
+      }
     }
 
     const { decision } = await inquirer.prompt([
       {
         type: 'list',
         name: 'decision',
-        message: 'Add this documentation?',
+        message: message,
         choices: choices,
-        default: 'approve',
+        default: hasExisting ? 'reject' : 'approve', // Default to 'reject' for existing docs
         pageSize: 5
       }
     ]);

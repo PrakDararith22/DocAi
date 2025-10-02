@@ -46,7 +46,6 @@ program
   .option('--save-preview <file>', 'Save preview to file without applying changes')
   .option('--watch', 'Monitor files for changes and auto-update documentation')
   .option('--debounce <ms>', 'Debounce delay for watch mode (default: 2000ms)', '2000')
-  .option('--force', 'Overwrite existing documentation')
   .option('--skip-errors', 'Continue processing even if some files have errors')
   .option('--timestamped', 'Create timestamped backup files (e.g., file_20250925_140530.py.bak)')
   .option('--strict', 'Stop processing on first error')
