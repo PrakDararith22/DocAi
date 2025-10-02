@@ -82,27 +82,26 @@
 ---
 
 ### Day 5: CLI Integration
-- [ ] Add `refactor` command to `bin/docai.js`
-- [ ] Create `src/refactorCommand.js` file
-- [ ] Implement interactive mode selection (if no flags)
-- [ ] Implement main workflow:
-  - [ ] Mode selection prompt
-  - [ ] File discovery
-  - [ ] Code analysis
-  - [ ] Get suggestions (filtered by mode)
-  - [ ] User selection
-  - [ ] Preview (always shown)
-  - [ ] User confirmation
-  - [ ] Apply changes
-- [ ] Add command options:
-  - [ ] `--perf` (performance mode)
-  - [ ] `--read` (readability mode)
-  - [ ] `--best` (best practices mode)
-  - [ ] `--design` (design patterns mode)
-  - [ ] `--explain` (detailed explanations)
-  - [ ] `--no-backup` (skip backup)
-  - [ ] `--min-impact <level>` (filter by impact)
-- [ ] Add error handling
+- [x] Add `refactor` command to `bin/docai.js`
+- [x] Create `src/refactorCommand.js` file
+- [x] Implement interactive mode selection (if no flags)
+- [x] Implement main workflow:
+  - [x] Mode selection prompt
+  - [x] File discovery
+  - [x] Code analysis
+  - [x] Get suggestions (filtered by mode)
+  - [x] User selection
+  - [x] Preview (always shown)
+  - [x] User confirmation
+  - [x] Apply changes
+- [x] Add command options:
+  - [x] `--perf` (performance mode)
+  - [x] `--read` (readability mode)
+  - [x] `--best` (best practices mode)
+  - [x] `--design` (design patterns mode)
+  - [x] `--explain` (detailed explanations)
+  - [x] `--min-impact <level>` (filter by impact)
+- [x] Add error handling
 - [ ] Test end-to-end workflow
 - [ ] Test mode selection prompt
 - [ ] Test with different mode flags
