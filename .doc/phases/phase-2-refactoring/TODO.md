@@ -55,11 +55,11 @@
 - [x] Implement line replacement logic
 - [x] Add syntax validation after changes
 - [x] Create backup before applying
-- [ ] Implement rollback mechanism (using existing BackupManager)
-- [ ] Add transaction pattern:
+- [x] Implement rollback mechanism (using existing BackupManager)
+- [x] Add transaction pattern:
   - [x] `begin()` - create backup (using BackupManager)
-  - [ ] `commit()` - remove backup (BackupManager has this)
-  - [ ] `rollback()` - restore from backup (BackupManager has this)
+  - [x] `commit()` - remove backup (BackupManager has this)
+  - [x] `rollback()` - restore from backup (BackupManager has this)
 - [ ] Write integration tests
 - [ ] Test with real code files
 
