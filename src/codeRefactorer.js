@@ -16,6 +16,31 @@ class CodeRefactorer {
   }
 
   /**
+   * Main entry point - Refactor a file
+   * @param {string} filePath - Path to file
+   * @param {Array} focusAreas - Focus areas
+   * @returns {Promise<Object>} Refactoring result
+   */
+  async refactorFile(filePath, focusAreas = ['all']) {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    // Read file
+    const code = await fs.readFile(filePath, 'utf-8');
+    const language = this.analyzer.detectLanguage(filePath);
+    
+    // Get suggestions
+    const suggestions = await this.getSuggestions(code, language, focusAreas);
+    
+    return {
+      filePath,
+      language,
+      code,
+      suggestions
+    };
+  }
+
+  /**
    * Get refactoring suggestions from AI
    * @param {string} code - Source code
    * @param {string} language - Programming language
