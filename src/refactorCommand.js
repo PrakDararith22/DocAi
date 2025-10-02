@@ -43,6 +43,11 @@ async function refactorCode(filePath, cliOptions) {
     
     console.log(chalk.gray(`📁 Found ${files.length} file${files.length > 1 ? 's' : ''} to analyze\n`));
     
+    // Show single-file warning
+    ui.showWarning('⚠️  Single-file refactoring mode');
+    ui.showInfo('Changes may affect other files that import from here');
+    ui.showInfo('Please run your tests after refactoring\n');
+    
     // Process each file
     const allResults = [];
     
@@ -185,8 +190,25 @@ async function processFile(file, options, refactorer, ui) {
   const result = await refactorer.applyRefactorings(file.path, code, selected);
   
   if (result.success) {
+    // Validate syntax before writing
+    console.log(chalk.blue('🔍 Validating syntax...\n'));
+    const isValid = await refactorer.validateSyntax(result.modifiedCode, file.language);
+    
+    if (!isValid) {
+      // Rollback on syntax error
+      ui.showError('Generated code has syntax errors. Rolling back changes.');
+      await refactorer.backupManager.restoreBackup(file.path);
+      return {
+        failed: selected.length,
+        reason: 'syntax_error'
+      };
+    }
+    
     // Write modified code
     await fs.writeFile(file.path, result.modifiedCode, 'utf-8');
+    
+    // Cleanup backup on success
+    await refactorer.backupManager.cleanupBackup(file.path);
     
     // Show results
     ui.showResults({
@@ -202,6 +224,10 @@ async function processFile(file, options, refactorer, ui) {
     };
   } else {
     ui.showError('Some refactorings failed.');
+    
+    // Restore backup on failure
+    await refactorer.backupManager.restoreBackup(file.path);
+    
     ui.showResults({
       applied: result.applied,
       failed: result.failed
