@@ -365,22 +365,28 @@ This document defines how we develop features and complete phases in DocAI. It e
 
 **When phase is done:**
 
-1. **Mark TODO Complete**
+1. **Verify All Requirements**
+   - Check README.md success criteria
+   - Check ISSUES_SCAN.md (all HIGH priority fixed)
+   - Check all design points implemented
+   - Verify nothing missed
+
+2. **Mark TODO Complete**
    - Check all items done
    - Mark with `[x]`
 
-2. **Update HISTORY.md**
+3. **Update HISTORY.md**
    - Add final session
    - Mark phase complete
    - Note what's next
 
-3. **Create Completion Summary**
+4. **Create Completion Summary**
    - What was accomplished
    - What was learned
    - Any issues encountered
    - Final status
 
-4. **Commit and Push**
+5. **Commit and Push**
    - Final commit
    - Clear message
    - Push to repository
