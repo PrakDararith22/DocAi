@@ -45,12 +45,15 @@ class CodeRefactorer {
    * @param {string} code - Source code
    * @param {string} language - Programming language
    * @param {Array} focusAreas - Focus areas (performance, readability, etc.)
+   * @param {string} filePath - File path (optional, for better analysis)
    * @returns {Promise<Array>} Refactoring suggestions
    */
-  async getSuggestions(code, language, focusAreas = ['all']) {
+  async getSuggestions(code, language, focusAreas = ['all'], filePath = null) {
     try {
-      // Analyze code first
-      const analysis = await this.analyzer.analyzeFile(code);
+      // Analyze code first - use filePath if available for proper parsing
+      const analysis = filePath 
+        ? await this.analyzer.analyzeFile(filePath)
+        : { metrics: { language, lineCount: code.split('\n').length, functionCount: 0, complexity: 1 }, smells: {} };
       
       // Build AI prompt based on focus areas
       const prompt = this.buildPrompt(code, language, focusAreas, analysis);

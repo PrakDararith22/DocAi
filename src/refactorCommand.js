@@ -148,7 +148,7 @@ async function processFile(file, options, refactorer, ui) {
   
   let suggestions;
   try {
-    suggestions = await refactorer.getSuggestions(code, file.language, options.focusAreas);
+    suggestions = await refactorer.getSuggestions(code, file.language, options.focusAreas, file.path);
   } catch (error) {
     ui.showError(`Failed to get suggestions: ${error.message}`);
     return { failed: [{ error: error.message }] };
