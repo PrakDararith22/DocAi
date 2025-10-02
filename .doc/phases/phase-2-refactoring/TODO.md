@@ -34,18 +34,18 @@
 ---
 
 ### Day 2: CodeRefactorer Module Core
-- [ ] Create `src/codeRefactorer.js` file
-- [ ] Implement constructor with options
-- [ ] Create AI prompt templates:
-  - [ ] Performance refactoring prompt
-  - [ ] Readability refactoring prompt
-  - [ ] Best practices prompt
-- [ ] Implement `getSuggestions()` function
-- [ ] Add response parsing and validation
-- [ ] Handle JSON parsing errors
-- [ ] Add suggestion filtering by impact
-- [ ] Write unit tests
-- [ ] Test with mock AI responses
+- [x] Create `src/codeRefactorer.js` file
+- [x] Implement constructor with options
+- [x] Create AI prompt templates:
+  - [x] Performance refactoring prompt
+  - [x] Readability refactoring prompt
+  - [x] Best practices prompt
+- [x] Implement `getSuggestions()` function
+- [x] Add response parsing and validation
+- [x] Handle JSON parsing errors
+- [x] Add suggestion filtering by impact
+- [x] Write unit tests
+- [x] Test with mock AI responses
 
 ---
 
