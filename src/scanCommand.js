@@ -3,6 +3,8 @@ const path = require('path');
 const chalk = require('chalk').default || require('chalk');
 const FileDiscovery = require('./fileDiscovery');
 const ParserManager = require('./parserManager');
+const GitHelper = require('./gitHelper');
+const MetadataManager = require('./metadataManager');
 
 /**
  * Scan for missing or outdated documentation
@@ -19,6 +21,19 @@ class DocumentationScanner {
    */
   async scan() {
     console.log(chalk.blue.bold('\n🔍 DocAI - Documentation Status\n'));
+
+    // Check if git is available
+    const gitHelper = new GitHelper(this.options.project);
+    const hasGit = await gitHelper.isGitRepository();
+    
+    if (hasGit && this.verbose) {
+      console.log(chalk.gray('✓ Git repository detected - using git-based detection\n'));
+    } else if (this.verbose) {
+      console.log(chalk.gray('⚠ No git repository - using parameter-based detection\n'));
+    }
+
+    // Initialize metadata manager
+    const metadataManager = new MetadataManager(this.options.project);
 
     // Discover files
     const fileDiscovery = new FileDiscovery(this.options);
@@ -44,7 +59,7 @@ class DocumentationScanner {
       const parseResult = await parserManager.parseFile(file);
       
       if (parseResult.functions) {
-        parseResult.functions.forEach(func => {
+        for (const func of parseResult.functions) {
           results.total++;
           
           if (!func.has_docstring) {
@@ -56,8 +71,13 @@ class DocumentationScanner {
               params: func.params || []
             });
           } else {
-            // Check if outdated
-            const outdatedReason = this.checkOutdated(func);
+            // Check if outdated (git-based or parameter-based)
+            const outdatedReason = await this.checkOutdated(
+              func,
+              file.path,
+              hasGit ? gitHelper : null,
+              metadataManager
+            );
             
             if (outdatedReason) {
               results.outdated.push({
@@ -78,11 +98,11 @@ class DocumentationScanner {
               });
             }
           }
-        });
+        }
       }
 
       if (parseResult.classes) {
-        parseResult.classes.forEach(cls => {
+        for (const cls of parseResult.classes) {
           results.total++;
           
           if (!cls.has_docstring) {
@@ -100,7 +120,7 @@ class DocumentationScanner {
               type: 'class'
             });
           }
-        });
+        }
       }
     }
 
@@ -110,12 +130,62 @@ class DocumentationScanner {
 
   /**
    * Check if documentation is outdated
+   * Uses git-based detection if available, falls back to parameter matching
    */
-  checkOutdated(func) {
+  async checkOutdated(func, filePath, gitHelper, metadataManager) {
     if (!func.docstring || !func.params) {
       return null;
     }
     
+    // Try git-based detection first
+    if (gitHelper) {
+      const gitReason = await this.checkOutdatedGit(func, filePath, gitHelper, metadataManager);
+      if (gitReason) {
+        return gitReason;
+      }
+    }
+    
+    // Fall back to parameter-based detection
+    return this.checkOutdatedParameters(func);
+  }
+  
+  /**
+   * Git-based outdated detection
+   */
+  async checkOutdatedGit(func, filePath, gitHelper, metadataManager) {
+    // Check if we have metadata for this function
+    const genInfo = await metadataManager.getGenerationInfo(filePath, func.name);
+    
+    if (!genInfo) {
+      // No metadata - can't use git detection
+      return null;
+    }
+    
+    // Get last commit for the file
+    const lastCommit = await gitHelper.getLastCommitForFile(filePath);
+    
+    if (!lastCommit) {
+      return null;
+    }
+    
+    // Compare commits
+    if (lastCommit !== genInfo.gitCommit) {
+      return `Code changed after documentation (git-based detection)`;
+    }
+    
+    // Check for uncommitted changes
+    const hasChanges = await gitHelper.hasUncommittedChanges(filePath);
+    if (hasChanges) {
+      return `File has uncommitted changes`;
+    }
+    
+    return null; // Up to date according to git
+  }
+  
+  /**
+   * Parameter-based outdated detection
+   */
+  checkOutdatedParameters(func) {
     // Extract documented parameters from docstring
     const documentedParams = this.extractDocumentedParams(func.docstring);
     const actualParams = func.params;

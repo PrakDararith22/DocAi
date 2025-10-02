@@ -408,13 +408,20 @@ class ProjectInitializer {
       if (!gitignoreContent.includes('.docaiConfig.json')) {
         // Add to .gitignore
         gitignoreContent += '\n# DocAI configuration (contains API keys)\n.docaiConfig.json\n';
-        await fs.writeFile(gitignorePath, gitignoreContent, 'utf-8');
-        
-        console.log(chalk.yellow('\n⚠️  Security Note:'));
-        console.log(chalk.yellow('  • .docaiConfig.json added to .gitignore'));
-        console.log(chalk.yellow('  • Never commit API keys to version control'));
-        console.log(chalk.yellow('  • Consider using environment variables for CI/CD'));
       }
+      
+      // Also add .docai/ directory (metadata)
+      if (!gitignoreContent.includes('.docai/')) {
+        gitignoreContent += '# DocAI metadata (tracking)\n.docai/\n';
+      }
+      
+      await fs.writeFile(gitignorePath, gitignoreContent, 'utf-8');
+      
+      console.log(chalk.yellow('\n⚠️  Security Note:'));
+      console.log(chalk.yellow('  • .docaiConfig.json added to .gitignore (contains API keys)'));
+      console.log(chalk.yellow('  • .docai/ added to .gitignore (metadata)'));
+      console.log(chalk.yellow('  • Never commit API keys to version control'));
+      console.log(chalk.yellow('  • Consider using environment variables for CI/CD'));
     } catch (error) {
       // Non-critical error, just warn
       console.log(chalk.yellow('\n⚠️  Could not update .gitignore'));
