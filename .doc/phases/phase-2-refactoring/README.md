@@ -99,8 +99,11 @@ docai refactor --perf --explain [path]
 
 ## 🎯 Success Criteria
 
-- [ ] Successfully refactors Python files
+- [ ] Successfully refactors Python, JavaScript, TypeScript files (priority)
+- [ ] Supports other languages (lower priority)
 - [ ] Generates 3-5 relevant suggestions per file
+- [ ] File size limit: 1,000 lines or under
+- [ ] Single-file refactoring (multi-file in Phase 3)
 - [ ] Clean, intuitive UI (matching Phase 1 style)
 - [ ] No breaking changes to code functionality
 - [ ] Backup/rollback works 100% of time
