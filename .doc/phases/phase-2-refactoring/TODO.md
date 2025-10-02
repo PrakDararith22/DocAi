@@ -50,16 +50,16 @@
 ---
 
 ### Day 3: Refactoring Application Logic
-- [ ] Implement `applyRefactorings()` function
-- [ ] Add indentation preservation logic
-- [ ] Implement line replacement logic
-- [ ] Add syntax validation after changes
-- [ ] Create backup before applying
-- [ ] Implement rollback mechanism
+- [x] Implement `applyRefactorings()` function
+- [x] Add indentation preservation logic
+- [x] Implement line replacement logic
+- [x] Add syntax validation after changes
+- [x] Create backup before applying
+- [ ] Implement rollback mechanism (using existing BackupManager)
 - [ ] Add transaction pattern:
-  - [ ] `begin()` - create backup
-  - [ ] `commit()` - remove backup
-  - [ ] `rollback()` - restore from backup
+  - [x] `begin()` - create backup (using BackupManager)
+  - [ ] `commit()` - remove backup (BackupManager has this)
+  - [ ] `rollback()` - restore from backup (BackupManager has this)
 - [ ] Write integration tests
 - [ ] Test with real code files
 

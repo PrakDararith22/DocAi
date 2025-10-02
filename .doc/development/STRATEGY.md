@@ -306,13 +306,19 @@ This document defines how we develop features and complete phases in DocAI. It e
    - Follow conventional commits format
    - Push regularly
 
-4. **Update HISTORY.md**
+4. **Mark TODO Items Complete**
+   - After completing each task
+   - Mark with `[x]` in TODO.md
+   - Keep progress visible
+   - Commit TODO.md updates
+
+5. **Update HISTORY.md**
    - Record what was done
    - Record decisions made
    - Record issues solved
    - Keep AI context current
 
-5. **Handle Errors Properly**
+6. **Handle Errors Properly**
    - Error occurs → Stop immediately
    - Analyze root cause
    - Discuss solution with AI
