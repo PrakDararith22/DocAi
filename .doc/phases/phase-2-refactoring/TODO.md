@@ -50,6 +50,7 @@
 ---
 
 ### Day 3: Refactoring Application Logic
+- [x] Implement `refactorFile()` main entry point
 - [x] Implement `applyRefactorings()` function
 - [x] Add indentation preservation logic
 - [x] Implement line replacement logic
