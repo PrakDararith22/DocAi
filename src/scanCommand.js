@@ -52,15 +52,31 @@ class DocumentationScanner {
               file: file.path,
               name: func.name,
               line: func.line,
-              type: 'function'
+              type: 'function',
+              params: func.params || []
             });
           } else {
-            results.hasDocs.push({
-              file: file.path,
-              name: func.name,
-              line: func.line,
-              type: 'function'
-            });
+            // Check if outdated
+            const outdatedReason = this.checkOutdated(func);
+            
+            if (outdatedReason) {
+              results.outdated.push({
+                file: file.path,
+                name: func.name,
+                line: func.line,
+                type: 'function',
+                reason: outdatedReason,
+                params: func.params || [],
+                docstring: func.docstring
+              });
+            } else {
+              results.hasDocs.push({
+                file: file.path,
+                name: func.name,
+                line: func.line,
+                type: 'function'
+              });
+            }
           }
         });
       }
@@ -93,6 +109,69 @@ class DocumentationScanner {
   }
 
   /**
+   * Check if documentation is outdated
+   */
+  checkOutdated(func) {
+    if (!func.docstring || !func.params) {
+      return null;
+    }
+    
+    // Extract documented parameters from docstring
+    const documentedParams = this.extractDocumentedParams(func.docstring);
+    const actualParams = func.params;
+    
+    // Check if parameter count matches
+    if (documentedParams.length !== actualParams.length) {
+      return `Parameter count mismatch (docs: ${documentedParams.length}, actual: ${actualParams.length})`;
+    }
+    
+    // Check if parameter names match
+    for (const actualParam of actualParams) {
+      if (!documentedParams.includes(actualParam)) {
+        return `Missing parameter '${actualParam}' in documentation`;
+      }
+    }
+    
+    // Check for extra documented parameters
+    for (const docParam of documentedParams) {
+      if (!actualParams.includes(docParam)) {
+        return `Extra parameter '${docParam}' in documentation (not in function)`;
+      }
+    }
+    
+    return null; // Up to date
+  }
+  
+  /**
+   * Extract parameter names from docstring
+   */
+  extractDocumentedParams(docstring) {
+    const params = [];
+    
+    // Match common docstring patterns
+    // Google style: "Args:\n    param_name (type): description"
+    // NumPy style: "Parameters\n----------\nparam_name : type"
+    // Sphinx style: ":param param_name: description"
+    
+    const patterns = [
+      /^\s*(\w+)\s*\([^)]*\)\s*:/gm,  // Google: param_name (type):
+      /^\s*:param\s+(\w+)\s*:/gm,      // Sphinx: :param param_name:
+      /^\s*(\w+)\s*:\s*\w+/gm          // NumPy: param_name : type
+    ];
+    
+    for (const pattern of patterns) {
+      const matches = docstring.matchAll(pattern);
+      for (const match of matches) {
+        if (match[1] && !params.includes(match[1])) {
+          params.push(match[1]);
+        }
+      }
+    }
+    
+    return params;
+  }
+
+  /**
    * Display scan results
    */
   displayResults(results) {
@@ -107,10 +186,33 @@ class DocumentationScanner {
       : 0;
 
     console.log(chalk.white(`Total functions/classes: ${results.total}`));
-    console.log(chalk.green(`✓ With documentation: ${results.hasDocs.length}`));
+    console.log(chalk.green(`✓ Up-to-date documentation: ${results.hasDocs.length}`));
+    console.log(chalk.yellow(`⚠ Outdated documentation: ${results.outdated.length}`));
     console.log(chalk.red(`✗ Missing documentation: ${results.missingDocs.length}`));
     console.log(chalk.blue(`Coverage: ${coverage}%`));
     console.log('');
+
+    // Outdated documentation
+    if (results.outdated.length > 0) {
+      console.log(chalk.yellow.bold('Outdated Documentation:'));
+      console.log('');
+
+      // Group by file
+      const byFile = this.groupByFile(results.outdated);
+      
+      for (const [filePath, items] of Object.entries(byFile)) {
+        console.log(chalk.yellow(`  ${path.basename(filePath)}`));
+        console.log(chalk.gray(`    ${filePath}`));
+        
+        items.forEach(item => {
+          const icon = item.type === 'function' ? '𝑓' : 'C';
+          console.log(chalk.yellow(`    ${icon} ${item.name}() `), chalk.gray(`(line ${item.line})`));
+          console.log(chalk.gray(`       ${item.reason}`));
+        });
+        
+        console.log('');
+      }
+    }
 
     // Missing documentation
     if (results.missingDocs.length > 0) {
