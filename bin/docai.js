@@ -8,6 +8,7 @@ const chalk = require('chalk').default || require('chalk');
 const { generateDocumentation } = require('../src/index.js');
 const { initializeProject } = require('../src/initCommand.js');
 const { scanDocumentation } = require('../src/scanCommand.js');
+const { refactorCode } = require('../src/refactorCommand.js');
 const { isInitialized, showInitPrompt } = require('../src/configValidator.js');
 
 program
@@ -46,6 +47,27 @@ program
       };
       
       await scanDocumentation(scanOptions);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+// Refactor command (AI-powered code refactoring)
+program
+  .command('refactor')
+  .description('Analyze and refactor code with AI suggestions')
+  .argument('[path]', 'File or directory to refactor', './src/')
+  .option('--perf', 'Focus on performance optimizations only')
+  .option('--read', 'Focus on readability improvements only')
+  .option('--best', 'Focus on best practices only')
+  .option('--design', 'Focus on design patterns only')
+  .option('--explain', 'Show detailed explanations for each suggestion')
+  .option('--min-impact <level>', 'Minimum impact level (high, medium, low)', 'medium')
+  .option('--project <path>', 'Project root directory', process.cwd())
+  .action(async (path, options) => {
+    try {
+      await refactorCode(path, options);
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
