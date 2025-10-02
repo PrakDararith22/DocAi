@@ -5,7 +5,7 @@ const inquirer = require('inquirer');
 const CodeRefactorer = require('./codeRefactorer');
 const RefactoringUI = require('./refactoringUI');
 const FileDiscovery = require('./fileDiscovery');
-const { loadConfig } = require('./config');
+const { resolveOptions } = require('./config');
 
 /**
  * Refactor Command Handler
@@ -14,8 +14,8 @@ const { loadConfig } = require('./config');
 async function refactorCode(filePath, cliOptions) {
   try {
     // Load configuration
-    const config = await loadConfig(cliOptions.project || process.cwd());
-    const options = { ...config, ...cliOptions };
+    const { options } = await resolveOptions(cliOptions);
+    options.focusAreas = options.focusAreas || [];
     
     // Initialize components
     const refactorer = new CodeRefactorer(options);
