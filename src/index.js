@@ -67,14 +67,22 @@ async function generateDocumentation(cliOptions) {
     if (options.verbose) console.log(chalk.gray(`Saved configuration to ${savedPath}`));
   }
 
-  // Validate options - low-level is now default, so this check is no longer needed
-
-  // For function/class documentation, inline is required
-  if (options.lowLevel && !options.inline) {
-    console.error(chalk.red('Error: Function/class documentation requires --inline flag'));
-    console.error(chalk.gray('Use: docai generate --inline [path]'));
-    console.error(chalk.gray('For README generation use: docai generate --readme [path]'));
-    process.exit(1);
+  // Set inline behavior based on output option
+  if (options.lowLevel) {
+    if (options.output) {
+      // User wants docs in separate location
+      options.inline = false;
+      options.outputDir = options.output;
+      if (options.verbose) {
+        console.log(chalk.gray(`Documentation will be saved to: ${options.output}`));
+      }
+    } else {
+      // Default: modify source code (inline)
+      options.inline = true;
+      if (options.verbose) {
+        console.log(chalk.gray('Documentation will be inserted into source files (inline mode)'));
+      }
+    }
   }
 
   // Provider/key validation will be handled by provider's testConnection later

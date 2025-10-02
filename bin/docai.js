@@ -2,30 +2,46 @@
 
 const { program } = require('commander');
 const { version } = require('../package.json');
+const chalk = require('chalk').default || require('chalk');
 
 // Import main functionality
 const { generateDocumentation } = require('../src/index.js');
+const { initializeProject } = require('../src/initCommand.js');
+const { isInitialized, showInitPrompt } = require('../src/configValidator.js');
 
 program
   .name('docai')
   .description('AI-powered CLI tool for automatically generating documentation')
   .version(version);
 
+// Init command (no config required)
+program
+  .command('init')
+  .description('Initialize DocAI in your project (REQUIRED first step)')
+  .option('--provider <name>', 'AI provider to use (gemini, huggingface)')
+  .option('--yes', 'Skip prompts and use defaults')
+  .action(async (options) => {
+    try {
+      await initializeProject(options);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
 program
   .command('generate')
   .description('Generate documentation for your code files')
   .argument('[path]', 'Target files or directory path (e.g., "./src/**/*.py" or "./src")', './src/')
-  .option('--low-level', 'Generate inline docstrings for functions and classes')
+  .option('--low-level', 'Generate docstrings for functions and classes (default)')
   .option('--readme', 'Generate README documentation for the project')
   .option('--concurrency <number>', 'Set concurrency level for parallel processing (default: 5)', '5')
   .option('--max-memory <mb>', 'Set maximum memory usage in MB (default: 200)', '200')
   .option('--benchmark', 'Run performance benchmark tests')
-  .option('--inline', 'Insert documentation directly into files')
   .option('--project <path>', 'Project root directory', process.cwd())
-  .option('--output <folder>', 'Output directory for non-inline mode', './docs')
-  .option('--no-preview', 'Skip preview and apply changes directly')
-  .option('--interactive', 'Interactive mode with approval prompts for each item (default)')
-  .option('--no-interactive', 'Disable interactive mode - apply all changes automatically')
+  .option('--output <folder>', 'Save documentation to separate folder instead of modifying source files')
+  .option('--no-preview', 'Skip preview (preview is shown by default)')
+  .option('--no-interactive', 'Disable interactive mode (interactive is enabled by default)')
   .option('--batch-approval', 'Enable batch approval for similar items')
   .option('--save-preview <file>', 'Save preview to file without applying changes')
   .option('--watch', 'Monitor files for changes and auto-update documentation')
@@ -45,6 +61,12 @@ program
   .option('--model <name>', 'AI model to use (e.g., gemini-2.5-flash, gemini-1.5-flash-latest)')
   .action(async (path, options) => {
     try {
+      // Check if initialized (friendly warning, not strict)
+      if (!isInitialized() && !options.config) {
+        showInitPrompt();
+        console.log(chalk.yellow('💡 Continuing with default settings...\n'));
+      }
+      
       // Set new defaults
       const enhancedOptions = {
         ...options,
@@ -54,8 +76,8 @@ program
         lang: 'all',                   // Auto-determine language (always 'all')
         highLevel: options.readme,     // Map --readme to highLevel internally
         lowLevel: !options.readme,     // Default to low-level unless --readme is specified
-        inline: !options.readme,       // Default to inline for low-level, false for README
         interactive: !options.noInteractive  // Interactive by default, unless --no-interactive is specified
+        // inline is now set automatically in index.js based on --output
       };
       
       await generateDocumentation(enhancedOptions);
