@@ -22,8 +22,8 @@ class PreviewSystem {
    * @returns {Promise<Object>} Preview results with user decisions
    */
   async showPreview(generationResults, parseResults) {
-    console.log(chalk.blue('\n📋 Documentation Preview'));
-    console.log(chalk.gray('========================\n'));
+    console.log(chalk.blue('\n📝 Review Generated Documentation'));
+    console.log(chalk.gray('Please review each function and decide whether to add the documentation.\n'));
 
     const previewResults = {
       approved: [],
@@ -46,9 +46,11 @@ class PreviewSystem {
     const filesToPreview = this.groupByFile(generationResults.generated);
     
     for (const [filePath, items] of Object.entries(filesToPreview)) {
-      console.log(chalk.cyan(`\n📄 File: ${path.basename(filePath)}`));
-      console.log(chalk.gray(`   Path: ${filePath}`));
-      console.log(chalk.gray(`   Items: ${items.length} functions/classes\n`));
+      if (this.verbose) {
+        console.log(chalk.cyan(`\n📄 File: ${path.basename(filePath)}`));
+        console.log(chalk.gray(`   Path: ${filePath}`));
+        console.log(chalk.gray(`   Items: ${items.length} functions/classes\n`));
+      }
 
       const fileResults = await this.previewFile(filePath, items, parseResults);
       
@@ -137,26 +139,12 @@ class PreviewSystem {
    * @param {Object} originalItem - Original item from parsing
    */
   showItemSignature(item, originalItem) {
-    const type = item.type === 'function' ? '🔧 Function' : '🏗️  Class';
-    const status = originalItem && originalItem.has_docstring ? 'yellow' : 'green';
-    const statusText = originalItem && originalItem.has_docstring ? 'UPDATE' : 'NEW';
+    const isNew = !originalItem || !originalItem.has_docstring;
     
-    console.log(chalk[status](`${type}: ${item.name}() - ${statusText}`));
-    
-    if (originalItem && originalItem.params && originalItem.params.length > 0) {
-      const params = originalItem.params.map(param => {
-        const typeInfo = param.type ? `: ${param.type}` : '';
-        return `${param.name}${typeInfo}`;
-      }).join(', ');
-      console.log(chalk.gray(`   Parameters: ${params}`));
-    }
-    
-    if (originalItem && originalItem.return_type) {
-      console.log(chalk.gray(`   Returns: ${originalItem.return_type}`));
-    }
-    
-    console.log(chalk.gray(`   Line: ${item.line}`));
     console.log('');
+    console.log(chalk.cyan('━'.repeat(60)));
+    console.log(chalk.cyan.bold(`  ${item.name}()`));
+    console.log(chalk.cyan('━'.repeat(60)));
   }
 
   /**
@@ -181,22 +169,26 @@ class PreviewSystem {
    * @param {Object} item - Item with generated docstring
    */
   showGeneratedDocumentation(item) {
-    console.log(chalk.green('✨ Generated Documentation:'));
-    console.log(chalk.gray('┌─────────────────────────────────────────────────────────┐'));
-    
     // Check if docstring is empty or undefined
     if (!item.docstring || item.docstring.trim() === '') {
-      console.log(chalk.red(`│ ❌ ERROR: No documentation generated                    │`));
-      console.log(chalk.red(`│ This item will be skipped automatically                │`));
+      console.log(chalk.red('  ❌ No documentation generated\n'));
     } else {
       const lines = item.docstring.split('\n');
-      lines.forEach(line => {
-        console.log(chalk.green(`│ ${line.padEnd(55)} │`));
+      const maxLines = 8; // Show first 8 lines
+      
+      lines.slice(0, maxLines).forEach((line, idx) => {
+        if (idx === 0) {
+          console.log(chalk.white(line)); // First line in white
+        } else {
+          console.log(chalk.gray(line)); // Rest in gray
+        }
       });
+      
+      if (lines.length > maxLines) {
+        console.log(chalk.gray(`  ... +${lines.length - maxLines} more lines`));
+      }
+      console.log('');
     }
-    
-    console.log(chalk.gray('└─────────────────────────────────────────────────────────┘'));
-    console.log('');
   }
 
   /**
@@ -243,27 +235,24 @@ class PreviewSystem {
   async getUserDecision(item, originalItem) {
     // Auto-skip items with empty docstrings
     if (!item.docstring || item.docstring.trim() === '') {
-      console.log(chalk.yellow('⏭️  Automatically skipping due to empty documentation'));
+      console.log(chalk.yellow('  ⏭  Skipped\n'));
       return 'skip';
     }
     
     if (!this.interactive) {
       // Non-interactive mode - show preview and return 'approve'
-      console.log(chalk.gray('📝 Preview mode: Will be applied automatically'));
       return 'approve';
     }
 
     const choices = [
-      { name: '✅ Approve', value: 'approve' },
-      { name: '❌ Reject', value: 'reject' },
-      { name: '⏭️  Skip', value: 'skip' }
+      { name: 'Yes, add this', value: 'approve' },
+      { name: 'No, skip this', value: 'reject' }
     ];
 
     // Add batch options for similar items
     if (this.batchApproval && !originalItem?.has_docstring) {
       choices.push(
-        { name: '✅ Approve all new functions', value: 'approve_all_functions' },
-        { name: '✅ Approve all new classes', value: 'approve_all_classes' }
+        { name: 'Yes to all remaining', value: 'approve_all_functions' }
       );
     }
 
@@ -271,12 +260,14 @@ class PreviewSystem {
       {
         type: 'list',
         name: 'decision',
-        message: `What would you like to do with ${item.name}()?`,
+        message: 'Add this documentation?',
         choices: choices,
-        pageSize: 10
+        default: 'approve',
+        pageSize: 5
       }
     ]);
 
+    console.log(''); // Add spacing after choice
     return decision;
   }
 
@@ -285,19 +276,15 @@ class PreviewSystem {
    * @param {Object} previewResults - Preview results
    */
   showPreviewSummary(previewResults) {
-    console.log(chalk.blue('\n📊 Preview Summary:'));
-    console.log(chalk.gray('=================='));
-    console.log(chalk.green(`✅ Approved: ${previewResults.summary.approved}`));
-    console.log(chalk.red(`❌ Rejected: ${previewResults.summary.rejected}`));
-    console.log(chalk.yellow(`⏭️  Skipped: ${previewResults.summary.skipped}`));
-    console.log(chalk.cyan(`📈 Total: ${previewResults.summary.total}`));
+    const approved = previewResults.summary.approved;
+    const rejected = previewResults.summary.rejected;
+    const total = previewResults.summary.total;
     
-    if (previewResults.summary.approved > 0) {
-      console.log(chalk.green(`\n🎉 ${previewResults.summary.approved} items will be applied!`));
-    }
-    
-    if (previewResults.summary.rejected > 0) {
-      console.log(chalk.red(`\n🚫 ${previewResults.summary.rejected} items were rejected.`));
+    console.log('');
+    if (approved > 0) {
+      console.log(chalk.green(`✓ You accepted ${approved} of ${total} items`));
+    } else {
+      console.log(chalk.yellow(`⚠️  No items were accepted`));
     }
   }
 
@@ -405,27 +392,24 @@ class PreviewSystem {
    */
   async showFinalConfirmation(previewResults) {
     if (previewResults.summary.approved === 0) {
-      console.log(chalk.yellow('No changes to apply.'));
+      console.log(chalk.yellow('\n⚠️  No changes to apply'));
       return false;
     }
 
-    console.log(chalk.blue('\n🤔 Final Confirmation'));
-    console.log(chalk.gray('===================='));
-    console.log(chalk.cyan(`Ready to apply ${previewResults.summary.approved} changes?`));
+    console.log('');
     
     if (this.interactive) {
       const { confirmed } = await inquirer.prompt([
         {
           type: 'confirm',
           name: 'confirmed',
-          message: 'Proceed with applying the approved changes?',
+          message: `Apply these ${previewResults.summary.approved} change${previewResults.summary.approved > 1 ? 's' : ''} to your code?`,
           default: true
         }
       ]);
       
       return confirmed;
     } else {
-      console.log(chalk.gray('Preview mode: Changes will be applied automatically'));
       return true;
     }
   }

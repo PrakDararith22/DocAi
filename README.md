@@ -1,6 +1,6 @@
 # DocAI - AI-Powered Documentation Generator
 
-![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg) ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg) ![AI Provider](https://img.shields.io/badge/AI-Gemini%20%26%20Hugging%20Face-blue.svg) ![Version](https://img.shields.io/badge/Version-1.0.0-success.svg)
+![Node.js](https://img.shields.io/badge/Node.js-16+-green.svg) ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg) ![AI Provider](https://img.shields.io/badge/AI-Gemini%20%26%20Hugging%20Face-blue.svg) ![Version](https://img.shields.io/badge/Version-1.0.0-success.svg) ![GitHub](https://img.shields.io/github/license/yourusername/docai) ![Install](https://img.shields.io/badge/Install-npm%20install%20-g%20git+https://github.com/yourusername/docai.git-blue)
 
 **DocAI** is a production-ready CLI tool that automatically generates high-quality documentation for your codebase using advanced AI models. It supports multiple programming languages and AI providers, with intelligent parsing, contextual documentation generation, and seamless integration into your development workflow.
 
@@ -50,18 +50,18 @@
 Get DocAI running in under 2 minutes:
 
 ```bash
-# 1. Clone and install
-git clone <repository-url>
-cd docai
-npm install
+# 1. Install globally from GitHub
+npm install -g git+https://github.com/yourusername/docai.git
 
 # 2. Set up Gemini API (recommended)
 export GOOGLE_API_KEY="your_gemini_api_key_here"
 
-# 3. Generate documentation (low-level is default)
+# 3. Generate documentation (works from any directory!)
 docai generate "./src/**/*.py"    # Function/class docs
 docai generate                    # Function/class docs on ./src/
 ```
+
+**🚀 That's it! DocAI is now available globally as `docai` command**
 
 ## Installation
 
@@ -70,11 +70,27 @@ docai generate                    # Function/class docs on ./src/
 - **Python 3.7+** (for Python code parsing)
 - **API Key**: Google AI Studio API key or Hugging Face token
 
-### Setup
+### Quick Install (Recommended)
+
+**Install directly from GitHub - becomes globally available immediately:**
+```bash
+npm install -g git+https://github.com/yourusername/docai.git
+
+# Verify installation
+docai --version
+# Output: 1.0.0
+
+# Ready to use anywhere on your system!
+docai generate --help
+```
+
+**✅ After installation, `docai` command works globally from any directory**
+
+### Manual Setup
 
 1. **Clone Repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/docai.git
 cd docai
 ```
 
@@ -83,8 +99,9 @@ cd docai
 npm install
 ```
 
-3. **Global Installation** (Optional)
+3. **Global Installation**
 ```bash
+npm install
 npm link
 # Now use 'docai' command globally
 ```
@@ -93,7 +110,16 @@ npm link
 ```bash
 docai --version
 # Should output: 1.0.0
+
+# Test it works
+docai generate --help
 ```
+
+**🎯 What happens after installation:**
+- `docai` command becomes available system-wide
+- Works from any directory on your computer
+- All features and options fully functional
+- No additional setup required
 
 ## Configuration
 

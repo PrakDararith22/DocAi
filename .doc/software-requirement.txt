@@ -1,0 +1,407 @@
+1. Introduction
+1.1 Purpose
+DocAI CLI is an intelligent Node.js command-line tool that automatically generates and inserts inline documentation for Python, JavaScript, and TypeScript codebases. The tool leverages Hugging Face's BigCode/StarCoder AI model via Inference API to create contextually appropriate docstrings and JSDoc comments, helping developers maintain well-documented code with minimal effort.
+Primary Goals:
+Generate inline docstrings for Python functions and classes
+Generate JSDoc comments for JavaScript/TypeScript functions and classes
+Optionally generate high-level project README documentation
+Ensure code safety through backup mechanisms and error handling
+Integrate seamlessly into developer workflows
+1.2 Intended Audience
+Primary Users: Software developers working with Python, JavaScript, or TypeScript projects
+Secondary Users: Development teams seeking to standardize documentation practices
+Use Cases: Individual development, team projects, CI/CD integration, legacy code documentation
+1.3 Product Scope
+In Scope:
+Automatic inline documentation generation for Python, JS, TS
+File backup and restoration capabilities
+Syntax error handling and graceful recovery
+Selective file processing with glob pattern support
+Preview and watch modes for enhanced workflow integration
+High-level README generation
+Out of Scope:
+Line-by-line code commenting
+External API documentation generation
+Documentation for languages other than Python, JavaScript, TypeScript
+Code refactoring or optimization
+1.4 Definitions and Acronyms
+AST: Abstract Syntax Tree - code representation used for parsing
+Docstring: Inline documentation string within Python functions/classes
+JSDoc: Standard documentation format for JavaScript/TypeScript
+CLI: Command Line Interface
+HF: Hugging Face (AI model provider)
+SRS: Software Requirements Specification
+
+2. Overall Description
+2.1 Product Perspective
+DocAI CLI is a standalone Node.js application distributed via npm. It integrates with:
+Hugging Face Inference API for AI-powered documentation generation
+Local file systems for code analysis and modification
+Developer workflows through CLI commands and watch modes
+CI/CD pipelines for automated documentation maintenance
+2.2 Product Functions
+Core Functions:
+Code Analysis: Parse Python, JavaScript, and TypeScript files using AST
+Documentation Generation: Create contextually appropriate docstrings using AI
+Safe File Modification: Backup files before changes, handle errors gracefully
+Selective Processing: Target specific files, folders, or patterns
+Preview Capabilities: Review generated documentation before application
+Watch Mode: Continuously monitor and update documentation
+README Generation: Create high-level project documentation
+2.3 User Classes and Characteristics
+Individual Developers:
+Need quick documentation for personal projects
+Value safety and preview capabilities
+Prefer simple, intuitive commands
+Development Teams:
+Require consistent documentation standards
+Need selective processing for large codebases
+Value integration with existing workflows
+DevOps Engineers:
+Need CI/CD integration capabilities
+Require batch processing for multiple projects
+Value reliable, error-resistant operation
+2.4 Operating Environment
+Technical Requirements:
+Runtime: Node.js (version 16.0.0 or higher)
+Operating Systems: Windows, macOS, Linux
+Network: Internet connection for Hugging Face API access
+Storage: Sufficient disk space for file backups
+Dependencies:
+Hugging Face API token for AI model access
+Python interpreter for AST parsing (system-wide installation)
+
+3. System Features
+3.1 Documentation Generation Engine
+Description: Core functionality for analyzing code and generating appropriate documentation.
+Functional Requirements:
+FR-001: Code Parsing
+System SHALL parse Python files using Python AST via child processes (python -c "import ast; ...")
+System SHALL parse JavaScript/TypeScript files using @babel/parser with auto-detection plugins (["typescript", "jsx"])
+System SHALL detect and skip files with syntax errors
+System SHALL log parsing errors with file location and error details
+FR-002: Documentation Detection
+System SHALL detect existing docstrings in Python functions and classes
+System SHALL detect existing JSDoc comments in JavaScript/TypeScript functions and classes
+System SHALL identify documentation style patterns (Google, NumPy, Sphinx for Python)
+System SHALL preserve existing documentation by default (add only where missing)
+System SHALL support --overwrite flag to replace existing docstrings with AI-generated ones
+FR-003: AI-Powered Generation
+System SHALL integrate with Hugging Face BigCode/StarCoder model via Inference API
+System SHALL authenticate using HF_TOKEN environment variable
+System SHALL generate contextually appropriate docstrings based on function signatures and code context
+System SHALL follow Google-style formatting for Python docstrings by default
+System SHALL follow standard JSDoc formatting for JavaScript/TypeScript
+System SHALL adapt to existing project documentation styles when detected
+System SHALL optionally support --style <google|numpy|sphinx> flag to force specific Python docstring styles
+3.2 File Management System
+Description: Safe file handling with backup and restoration capabilities.
+Functional Requirements:
+FR-004: File Backup
+System SHALL create .bak extension copies of original files before modification (primary method)
+System SHALL support optional timestamped backups (utils_20250925_0800.py) for multiple versions
+System SHALL support optional Git-based backups (temporary branch or commit) for Git projects
+System SHALL preserve backup files after successful documentation insertion
+System SHALL restore from backup files if modification fails
+System SHALL create backups before modifying the file to ensure no data loss
+FR-005: File Processing
+System SHALL process files in parallel batches for performance optimization
+System SHALL respect project boundaries and exclusion patterns
+System SHALL automatically exclude common build directories (node_modules, pycache, dist, build)
+System SHALL optionally respect .gitignore patterns
+FR-006: Error Handling
+System SHALL continue processing remaining files when individual files fail
+System SHALL log detailed error information for failed operations
+System SHALL provide summary reports of processed, skipped, and failed files
+System SHALL support strict mode that stops on first error
+3.3 User Interface and Experience
+Description: Command-line interface with preview, progress, and interactive capabilities.
+Functional Requirements:
+FR-007: Command Line Interface
+System SHALL provide intuitive command structure using Commander.js framework
+System SHALL support comprehensive help documentation for all commands and options
+System SHALL validate input parameters and provide meaningful error messages
+System SHALL support configuration via command-line flags and optional config files
+FR-008: Preview and Approval
+System SHALL display generated documentation in terminal output by default, showing function signatures with proposed docstrings
+System SHALL support interactive mode allowing approval or rejection of individual docstrings
+System SHALL provide diff-style visualization of proposed changes against existing documentation
+System SHALL allow batch approval for multiple files
+System SHALL ensure users can trust and verify AI-generated content before committing
+FR-009: Progress and Feedback
+System SHALL display progress indicators (spinners, progress bars) for long-running operations
+System SHALL show minimal logging by default (files processed, backups created, skipped files)
+System SHALL provide --verbose option for detailed logs including parsed functions, generated docstrings, and AI API responses
+System SHALL report processing statistics and completion summaries
+System SHALL balance usability for casual users and insight for power users
+3.4 Watch and Automation
+Description: Continuous monitoring and automatic documentation updates.
+Functional Requirements:
+FR-010: File Monitoring
+System SHALL monitor specified files and directories for changes (.py, .js, .ts)
+System SHALL detect file creation, modification, and deletion events (triggers include file saves)
+System SHALL implement debouncing with short delays to prevent excessive regeneration
+System SHALL ignore changes made by the tool itself to prevent infinite loops
+System SHALL enable seamless integration into active development workflows without disrupting the codebase
+FR-011: Automation Features
+System SHALL support glob patterns for flexible file selection
+System SHALL enable language-specific filtering (Python, JavaScript, TypeScript)
+System SHALL integrate with development workflows without interruption
+System SHALL provide watch mode status and activity reporting
+FR-012: Config File Detection
+System SHALL automatically detect a configuration file named .docaiConfig.json in the project root directory.
+System SHALL allow alternative config file names via a --config <path> CLI flag.
+FR-013: Configurable Options
+System SHALL support storing all CLI flags in the JSON file, including:
+hf_token (Hugging Face API key)
+project (project root path)
+lang (language filter: py, js, ts, all)
+low_level / high_level (docstring or README generation)
+inline, file, output, preview, watch, overwrite, skip_errors, backup, verbose, style
+System SHALL allow environment variables (like HF_TOKEN) to override config file values.
+System SHALL allow CLI command flags to override config file values.
+FR-014: Validation
+System SHALL validate the JSON syntax and required fields at startup.
+System SHALL display meaningful error messages if the config file is missing required options or contains invalid values.
+FR-015: Security
+System SHALL ensure sensitive values (like hf_token) are not logged to the console or saved in backups.
+System SHALL respect file system permissions for the config file.
+
+4. External Interface Requirements
+4.1 User Interface
+Command Line Interface:
+Primary interaction through terminal commands
+Support for standard CLI conventions (help, version, error codes)
+Interactive prompts for preview and approval modes
+Colorized output for enhanced readability
+4.2 Software Interfaces
+Hugging Face API Integration:
+REST API communication with Hugging Face Inference API
+Authentication via HF_TOKEN environment variable
+Rate limiting and error handling for API calls
+Support for model fallback and timeout handling
+File System Interface:
+Read access to source code files
+Write access for documentation insertion and backup creation
+Directory traversal for project analysis
+Temporary file handling for processing operations
+Python Runtime Interface:
+Child process spawning for Python AST parsing
+Error capture and parsing from Python execution
+Cross-platform Python executable detection
+4.3 Hardware Interfaces
+No special hardware interfaces required. Standard computing resources sufficient.
+4.4 Communication Interfaces
+Network Requirements:
+HTTPS communication with Hugging Face API endpoints
+Internet connectivity for AI model access
+Optional proxy support for corporate environments
+
+5. Non-Functional Requirements
+5.1 Performance Requirements
+PR-001: Processing Speed
+System SHALL process projects with <500 files within 30 seconds
+System SHALL support parallel file processing with configurable concurrency
+System SHALL implement efficient caching for repeated operations
+PR-002: Resource Usage
+System SHALL maintain reasonable memory footprint during processing
+System SHALL implement streaming for large file operations
+System SHALL support rate limiting for API calls to prevent service throttling
+5.2 Reliability Requirements
+RR-001: Error Recovery
+System SHALL gracefully handle network interruptions
+System SHALL recover from API failures without data loss
+System SHALL maintain file integrity through backup mechanisms
+System SHALL provide detailed error logging for troubleshooting
+RR-002: Data Safety
+System SHALL never modify files without creating backups
+System SHALL validate file operations before execution
+System SHALL implement atomic operations where possible
+5.3 Usability Requirements
+UR-001: Ease of Use
+System SHALL provide intuitive command syntax
+System SHALL offer comprehensive help documentation
+System SHALL support common use cases with minimal configuration
+System SHALL provide clear feedback for all operations
+5.4 Portability Requirements
+PR-003: Platform Support
+System SHALL run on Windows, macOS, and Linux
+System SHALL handle platform-specific file path conventions
+System SHALL support different Python installation paths
+5.5 Security Requirements
+SR-001: API Security
+System SHALL securely handle Hugging Face API tokens
+System SHALL support token storage via environment variables
+System SHALL not log or expose API tokens in output
+SR-002: File Security
+System SHALL respect file system permissions
+System SHALL not modify files outside specified project boundaries
+
+6. Technical Architecture
+6.1 System Architecture
+Core Components:
+CLI Controller - Command parsing and orchestration
+File Discovery Engine - Project scanning and file selection
+Code Parser - AST-based code analysis
+AI Integration Module - Hugging Face API communication
+Documentation Generator - Docstring formatting and insertion
+File Manager - Backup, restoration, and safe file operations
+Progress Reporter - User feedback and logging
+6.2 Technology Stack
+Primary Technologies:
+Runtime: Node.js (16.0.0+)
+CLI Framework: Commander.js (lightweight, perfect for this tool's scope)
+JavaScript/TypeScript Parser: @babel/parser with auto-detection plugins
+Python Parser: Python AST via child_process (python -c commands)
+AI Service: Hugging Face Inference API (BigCode/StarCoder)
+File Operations: Node.js fs module with promise-based operations
+Supporting Libraries:
+glob: File pattern matching for selective processing
+chokidar: File system watching for watch mode
+chalk: Terminal color output for enhanced UX
+ora: Progress spinners for long operations
+inquirer: Interactive prompts for approval mode and user interaction
+6.3 Data Flow
+Source Files → AST Parsing → Function Detection → Existing Doc Check → 
+AI Generation (HF StarCoder) → Preview (Optional/Interactive) → Backup Creation (.bak) → 
+Doc Insertion → Completion Report
+
+6.4 Error Handling Strategy
+Multi-Level Error Handling:
+File Level: Skip unparseable files, continue processing
+Network Level: Retry API calls with exponential backoff
+System Level: Graceful degradation and error reporting
+User Level: Clear error messages and recovery suggestions
+
+7. Command Reference
+7.1 Primary Commands
+# Basic documentation generation
+docai generate --low-level --inline
+
+# High-level README generation  
+docai generate --high-level
+
+# Preview mode with backup
+docai generate --low-level --inline --preview --backup
+
+# Selective file processing
+docai generate --low-level --inline --file "./src/**/*.py" --lang py
+
+# Watch mode for continuous updates
+docai generate --watch --low-level --inline
+
+# Force overwrite existing docstrings
+docai generate --low-level --inline --force --skip-errors
+
+7.2 Command Options
+Option
+Description
+Default
+--project <path>
+Project root directory
+Current directory
+--low-level
+Generate inline docstrings
+false
+--high-level
+Generate README only
+false
+--inline
+Insert directly into files
+false
+--file <pattern>
+Target specific files/patterns
+All supported files
+--lang <js|ts|py>
+Filter by language
+All languages
+--output <folder>
+Output directory (non-inline)
+./docs
+--preview
+Show before writing
+false
+--watch
+Monitor file changes
+false
+--force / --overwrite
+Overwrite existing docs
+false
+--skip-errors
+Continue on syntax errors
+false
+--backup
+Create file backups (.bak)
+false
+--verbose
+Detailed logging
+false
+
+
+8. Implementation Guidelines
+8.1 Development Phases
+Phase 1: Core Infrastructure
+CLI framework setup with Commander.js
+File discovery and AST parsing implementation (Python child processes, @babel/parser)
+Hugging Face Inference API integration with HF_TOKEN authentication
+Phase 2: Documentation Engine
+Docstring detection and style analysis (Google/NumPy/Sphinx detection)
+AI-powered generation with context awareness using StarCoder
+Safe file modification with .bak backup system
+Phase 3: User Experience
+Preview mode with terminal output and interactive approval
+Progress indicators (spinners/progress bars) and minimal/verbose logging
+Error handling and recovery mechanisms with graceful syntax error skipping
+Phase 4: Advanced Features
+Watch mode implementation with debouncing and infinite loop prevention
+High-level README generation
+Performance optimization with parallel processing and testing with <500 files in 30s target
+8.2 Quality Assurance
+Testing Strategy:
+Unit tests for individual components
+Integration tests for end-to-end workflows
+Error scenario testing with malformed code
+Performance testing with large codebases
+Code Quality:
+ESLint configuration for consistent coding standards
+Type checking with JSDoc annotations
+Documentation of internal APIs
+Regular security audits of dependencies
+8.3 Deployment and Distribution
+NPM Package:
+Global installation support via npm install -g docai
+Semantic versioning for releases
+Comprehensive README with examples
+CI/CD pipeline for automated testing and publishing
+Documentation:
+Complete CLI reference documentation
+Usage examples for common scenarios
+Troubleshooting guide for common issues
+API documentation for extensibility
+
+Appendix A: Use Case Examples
+A.1 Individual Developer Workflow
+# Developer working on a Python project wants to add docstrings
+cd my-python-project
+docai generate --low-level --inline --preview --backup
+# Reviews generated docstrings, approves, and continues development
+
+A.2 Team Documentation Standards
+# Team lead standardizes documentation across project
+docai generate --low-level --inline --force --style google --verbose
+# Generates consistent Google-style docstrings for entire codebase
+
+A.3 CI/CD Integration
+# Automated documentation check in CI pipeline
+docai generate --low-level --preview --skip-errors
+# Returns exit code indicating if documentation is complete
+
+
+Document Control:
+Version: 2.0
+Last Modified: September 25, 2025
+Review Status: Approved for Implementation - Updated with Technical Specifications
+Next Review: Implementation Milestone 1
+Changes in v2.0: Added HF StarCoder API details, Commander.js framework, Python AST via child process, backup strategies, UX specifications for preview/progress/watch modes
+
+

@@ -20,7 +20,7 @@
   "concurrency": "5",
   "maxMemory": "200",
   "benchmark": false,
-  "verbose": true,
+  "verbose": false,
   "style": "google",
   "provider": "gemini",
   "gemini_model": "gemini-2.5-flash",

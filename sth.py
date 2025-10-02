@@ -15,6 +15,7 @@ def longest_unique_substring(s: str) -> str:
     return max_sub
 
 def reverse_string(text: str) -> str:
+
     return text[::-1]
 
 def test_function():

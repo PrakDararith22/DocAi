@@ -428,19 +428,48 @@ class ProgressManager {
    * @param {Object} results - Final results
    */
   showFinalSummary(results) {
-    console.log(chalk.blue('\n🎉 DocAI Processing Complete!'));
-    console.log(chalk.gray('============================'));
+    const hasErrors = results.errors && results.errors.length > 0;
+    const hasFailed = results.summary && results.summary.failed > 0;
     
-    if (results.summary) {
-      this.showStatistics(results.summary);
+    if (this.verbose) {
+      // Verbose mode: Full banner
+      if (hasErrors || hasFailed) {
+        console.log(chalk.red.bold('\n╔════════════════════════════════════════════════════════════════╗'));
+        console.log(chalk.red.bold('║              ❌ DocAI COMPLETED WITH ERRORS ❌                 ║'));
+        console.log(chalk.red.bold('╚════════════════════════════════════════════════════════════════╝'));
+      } else {
+        console.log(chalk.green.bold('\n╔════════════════════════════════════════════════════════════════╗'));
+        console.log(chalk.green.bold('║              ✅ DocAI COMPLETED SUCCESSFULLY ✅                ║'));
+        console.log(chalk.green.bold('╚════════════════════════════════════════════════════════════════╝'));
+      }
+      
+      if (results.summary) {
+        this.showStatistics(results.summary);
+      }
+      
+      if (results.errors && results.errors.length > 0) {
+        console.log(chalk.red.bold(`\n🚨 ${results.errors.length} errors occurred during processing`));
+        console.log(chalk.yellow('   Check the error log for details: docai-errors.json'));
+      }
+      
+      const duration = Date.now() - this.startTime;
+      console.log(chalk.gray(`\nTotal time: ${this.formatDuration(duration)}`));
+    } else {
+      // Compact mode: Simple summary
+      const duration = Date.now() - this.startTime;
+      const successful = results.summary?.successful || 0;
+      const failed = results.summary?.failed || 0;
+      
+      if (hasErrors || hasFailed) {
+        console.log(chalk.red.bold(`\n❌ Completed with ${failed} error${failed !== 1 ? 's' : ''}`));
+        if (results.errors && results.errors.length > 0) {
+          console.log(chalk.yellow(`   See: docai-errors.json`));
+        }
+      } else {
+        console.log(chalk.green.bold(`\n✅ Success! ${successful} item${successful !== 1 ? 's' : ''} documented`));
+      }
+      console.log(chalk.gray(`   Time: ${this.formatDuration(duration)}`));
     }
-    
-    if (results.errors && results.errors.length > 0) {
-      console.log(chalk.red(`\n🚨 ${results.errors.length} errors occurred during processing`));
-    }
-    
-    const duration = Date.now() - this.startTime;
-    console.log(chalk.gray(`\nTotal time: ${this.formatDuration(duration)}`));
   }
 }
 

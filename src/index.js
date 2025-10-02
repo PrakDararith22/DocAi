@@ -51,16 +51,20 @@ async function generateProjectInfo(options) {
  * @param {Object} options - CLI options
  */
 async function generateDocumentation(cliOptions) {
-  console.log(chalk.blue.bold('🤖 DocAI - AI-Powered Documentation Generator'));
-  console.log(chalk.gray('=====================================\n'));
-
   // Resolve configuration: DEFAULTS <- config file <- env <- CLI
   const { options, configPath } = await resolveOptions(cliOptions);
+
+  if (options.verbose) {
+    console.log(chalk.blue.bold('🤖 DocAI - AI-Powered Documentation Generator'));
+    console.log(chalk.gray('=====================================\n'));
+  } else {
+    console.log(chalk.blue.bold('🤖 DocAI'));
+  }
 
   // Optionally save current effective options as config file
   if (options.saveConfig) {
     const savedPath = await saveConfigFile(options.project, options);
-    console.log(chalk.gray(`Saved configuration to ${savedPath}`));
+    if (options.verbose) console.log(chalk.gray(`Saved configuration to ${savedPath}`));
   }
 
   // Validate options - low-level is now default, so this check is no longer needed
@@ -80,18 +84,20 @@ async function generateDocumentation(cliOptions) {
   const progressManager = new ProgressManager(options);
   const performanceOptimizer = new PerformanceOptimizer(options);
 
-  // Show what we're going to do
-  console.log(chalk.yellow('Configuration:'));
-  console.log(`  Project: ${options.project}`);
-  console.log(`  Language: ${options.lang}`);
-  console.log(`  Mode: ${options.highLevel ? 'High-level (README)' : options.lowLevel ? 'Low-level (functions/classes)' : 'Low-level (functions/classes)'}`);
-  console.log(`  Inline: ${options.inline ? 'Yes' : 'No'}`);
-  console.log(`  Preview: ${options.preview ? 'Yes' : 'No'}`);
-  console.log(`  Backup: ${options.backup ? 'Yes' : 'No'}`);
-  console.log(`  Watch: ${options.watch ? 'Yes' : 'No'}`);
-  console.log(`  Interactive: ${options.interactive ? 'Yes' : 'No'}`);
-  console.log(`  Strict: ${options.strict ? 'Yes' : 'No'}`);
-  console.log('');
+  // Show what we're going to do (only in verbose mode)
+  if (options.verbose) {
+    console.log(chalk.yellow('Configuration:'));
+    console.log(`  Project: ${options.project}`);
+    console.log(`  Language: ${options.lang}`);
+    console.log(`  Mode: ${options.highLevel ? 'High-level (README)' : options.lowLevel ? 'Low-level (functions/classes)' : 'Low-level (functions/classes)'}`);
+    console.log(`  Inline: ${options.inline ? 'Yes' : 'No'}`);
+    console.log(`  Preview: ${options.preview ? 'Yes' : 'No'}`);
+    console.log(`  Backup: ${options.backup ? 'Yes' : 'No'}`);
+    console.log(`  Watch: ${options.watch ? 'Yes' : 'No'}`);
+    console.log(`  Interactive: ${options.interactive ? 'Yes' : 'No'}`);
+    console.log(`  Strict: ${options.strict ? 'Yes' : 'No'}`);
+    console.log('');
+  }
 
   // Handle watch mode (only for low-level processing)
   if (options.watch && options.lowLevel && !options.highLevel) {
@@ -104,7 +110,7 @@ async function generateDocumentation(cliOptions) {
       return;
     }
     
-    await watchMode.startWatching(files, options);
+    await watchMode.startWatching(files, options, generateDocumentation);
     return; // Watch mode runs indefinitely
   }
 
@@ -113,13 +119,13 @@ async function generateDocumentation(cliOptions) {
   
   try {
     // Discover files to process
-    const discoverySpinner = progressManager.startSpinner('discovery', '🔍 Discovering files...');
+    const discoverySpinner = options.verbose ? progressManager.startSpinner('discovery', '🔍 Discovering files...') : null;
     const files = await fileDiscovery.discoverFiles();
-    progressManager.stopSpinner('discovery', 'succeed', `Found ${files.length} files`);
+    if (options.verbose) progressManager.stopSpinner('discovery', 'succeed', `Found ${files.length} files`);
     
     if (files.length === 0) {
-      console.log(chalk.yellow('No files found to process.'));
-      console.log(chalk.gray('Make sure you have Python (.py), JavaScript (.js), or TypeScript (.ts) files in your project.'));
+      console.log(chalk.yellow('⚠️  No files found to process.'));
+      if (options.verbose) console.log(chalk.gray('Make sure you have Python (.py), JavaScript (.js), or TypeScript (.ts) files in your project.'));
       return;
     }
     
@@ -127,8 +133,8 @@ async function generateDocumentation(cliOptions) {
     const { validFiles, errors } = await fileDiscovery.validateFiles(files);
     
     if (validFiles.length === 0) {
-      console.log(chalk.red('No valid files found to process.'));
-      if (errors.length > 0) {
+      console.log(chalk.red('❌ No valid files found to process.'));
+      if (errors.length > 0 && options.verbose) {
         console.log(chalk.red('All files had access issues.'));
         errors.forEach(error => errorManager.handleFileError(error.filePath, new Error(error.message), 'validation'));
       }
@@ -136,13 +142,17 @@ async function generateDocumentation(cliOptions) {
       process.exit(errorManager.getExitCode());
     }
     
-    progressManager.log(`Found ${validFiles.length} files ready for processing!`, 'success');
+    if (!options.verbose) {
+      console.log(chalk.gray(`📁 Processing ${validFiles.length} file${validFiles.length > 1 ? 's' : ''}...`));
+    } else {
+      progressManager.log(`Found ${validFiles.length} files ready for processing!`, 'success');
+    }
     
     // Initialize parser manager
     const parserManager = new ParserManager(options);
     
     // Parse files to extract functions and classes
-    const parsingSpinner = progressManager.startSpinner('parsing', '🔍 Parsing files...');
+    const parsingSpinner = options.verbose ? progressManager.startSpinner('parsing', '🔍 Parsing files...') : null;
     
     // Use performance optimization for parsing
     let parseResults = await performanceOptimizer.processFilesInParallel(
@@ -182,36 +192,68 @@ async function generateDocumentation(cliOptions) {
           convertedResults[lang].push(result.result);
         }
         convertedResults.summary.parsedFiles++;
+        
+        // Count errors inside the result (e.g., syntax errors)
+        if (result.result.errors && result.result.errors.length > 0) {
+          convertedResults.summary.errors += result.result.errors.length;
+        }
       } else {
         convertedResults.summary.errors++;
       }
     });
     
-    progressManager.stopSpinner('parsing', 'succeed', `Parsed ${convertedResults.summary.parsedFiles} files`);
+    if (options.verbose) progressManager.stopSpinner('parsing', 'succeed', `Parsed ${convertedResults.summary.parsedFiles} files`);
     
     // Use converted results for the rest of the processing
     parseResults = convertedResults;
     
     // Handle parsing errors
     if (parseResults.summary.errors > 0) {
+      console.log(chalk.red.bold('\n╔════════════════════════════════════════════════════════════════╗'));
+      console.log(chalk.red.bold('║                    ⚠️  PARSING ERRORS DETECTED ⚠️               ║'));
+      console.log(chalk.red.bold('╚════════════════════════════════════════════════════════════════╝'));
+      console.log('');
+      
       // Check all language results for errors
+      let errorCount = 0;
       [...parseResults.python, ...parseResults.javascript, ...parseResults.typescript].forEach(fileResult => {
         if (fileResult.errors && fileResult.errors.length > 0) {
-          fileResult.errors.forEach(error => {
+          errorCount++;
+          console.log(chalk.red.bold(`❌ File ${errorCount}: ${fileResult.file_path}`));
+          console.log(chalk.red('   └─ Errors:'));
+          fileResult.errors.forEach((error, idx) => {
+            console.log(chalk.yellow(`      ${idx + 1}. ${error}`));
             errorManager.handleParsingError(fileResult.file_path, new Error(error), fileResult.language);
           });
+          console.log('');
         }
       });
+      
+      console.log(chalk.red.bold('💡 Action Required:'));
+      console.log(chalk.yellow('   • Fix the syntax errors in the files listed above'));
+      console.log(chalk.yellow('   • Run your code through a linter or Python/JS compiler'));
+      console.log(chalk.yellow('   • Re-run DocAI after fixing the errors'));
+      console.log('');
     }
     
     // Get all functions and classes for processing
     const allFunctions = parserManager.getAllFunctions(parseResults);
     const allClasses = parserManager.getAllClasses(parseResults);
     
-    console.log(chalk.blue(`\n📊 Parsing Complete:`));
-    console.log(chalk.gray(`  Functions found: ${allFunctions.length}`));
-    console.log(chalk.gray(`  Classes found: ${allClasses.length}`));
-    console.log(chalk.gray(`  Files with errors: ${parseResults.summary.errors}`));
+    if (options.verbose) {
+      console.log(chalk.blue.bold(`\n📊 Parsing Summary:`));
+      console.log(chalk.blue('═══════════════════'));
+      console.log(chalk.green(`  ✓ Functions found: ${allFunctions.length}`));
+      console.log(chalk.green(`  ✓ Classes found: ${allClasses.length}`));
+      
+      if (parseResults.summary.errors > 0) {
+        console.log(chalk.red.bold(`  ✗ Files with errors: ${parseResults.summary.errors}`));
+      } else {
+        console.log(chalk.green(`  ✓ Files with errors: 0`));
+      }
+    } else if (parseResults.summary.errors === 0) {
+      console.log(chalk.green(`✓ Found ${allFunctions.length} function${allFunctions.length !== 1 ? 's' : ''}, ${allClasses.length} class${allClasses.length !== 1 ? 'es' : ''}`));
+    }
     
     // Check for existing documentation before proceeding
     const functionsWithDocs = allFunctions.filter(func => func.has_docstring);
@@ -298,20 +340,24 @@ async function generateDocumentation(cliOptions) {
         const aiAPI = createAIProvider(options);
         
         // Test API connection
-        console.log(chalk.blue('\n🤖 Testing AI provider connection...'));
+        if (options.verbose) console.log(chalk.blue('\n🤖 Testing AI provider connection...'));
         const connectionTest = await aiAPI.testConnection();
         
         if (!connectionTest.success) {
           console.error(chalk.red('❌ AI provider connection failed:'), connectionTest.message);
-          console.error(chalk.gray('Please check your provider configuration and API key (e.g., GOOGLE_API_KEY for Gemini or HF_TOKEN for Hugging Face).'));
+          if (options.verbose) console.error(chalk.gray('Please check your provider configuration and API key (e.g., GOOGLE_API_KEY for Gemini or HF_TOKEN for Hugging Face).'));
           return;
         }
         
-        console.log(chalk.green('✅ AI provider connection successful!'));
+        if (options.verbose) console.log(chalk.green('✅ AI provider connection successful!'));
         
         // Generate documentation for functions and classes
         if (allFunctions.length > 0 || allClasses.length > 0) {
-          console.log(chalk.blue('\n📝 Generating AI-powered documentation...'));
+          if (!options.verbose) {
+            console.log(chalk.blue('🤖 Generating documentation...'));
+          } else {
+            console.log(chalk.blue('\n📝 Generating AI-powered documentation...'));
+          }
           
           // Analyze existing documentation styles
           const styleAnalysis = new DocumentationAnalyzer(options).analyzeDocumentationStyles(parseResults);
@@ -481,8 +527,10 @@ async function generateDocumentation(cliOptions) {
       }
     }
     
-    // Show performance summary
-    performanceOptimizer.showPerformanceSummary();
+    // Show performance summary (only in verbose mode)
+    if (options.verbose) {
+      performanceOptimizer.showPerformanceSummary();
+    }
     
     // Show final summary
     progressManager.showFinalSummary({
@@ -494,7 +542,7 @@ async function generateDocumentation(cliOptions) {
     if (options.logErrors) {
       const logPath = path.join(options.project, 'docai-errors.json');
       const logResult = await errorManager.saveErrorLog(logPath);
-      if (logResult.success) {
+      if (logResult.success && options.verbose) {
         progressManager.log(`Error log saved to: ${logResult.logPath}`, 'info');
       }
     }

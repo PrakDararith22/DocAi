@@ -33,7 +33,9 @@ class PerformanceOptimizer {
     const startTime = Date.now();
     this.performanceMetrics.phases.parallelProcessing = { startTime };
 
-    console.log(chalk.blue(`\n⚡ Performance Mode: Processing ${files.length} files with concurrency ${this.concurrency}`));
+    if (this.verbose) {
+      console.log(chalk.blue(`\n⚡ Performance Mode: Processing ${files.length} files with concurrency ${this.concurrency}`));
+    }
     
     const results = [];
     const batches = this.createBatches(files, this.concurrency);
@@ -75,7 +77,9 @@ class PerformanceOptimizer {
       this.performanceMetrics.phases.parallelProcessing.endTime - this.performanceMetrics.phases.parallelProcessing.startTime;
 
     const totalDuration = Date.now() - startTime;
-    console.log(chalk.green(`✅ Parallel processing completed in ${totalDuration}ms`));
+    if (this.verbose) {
+      console.log(chalk.green(`✅ Parallel processing completed in ${totalDuration}ms`));
+    }
     
     return results;
   }
@@ -105,7 +109,9 @@ class PerformanceOptimizer {
     const startTime = Date.now();
     this.performanceMetrics.phases.apiBatching = { startTime };
 
-    console.log(chalk.blue(`\n🤖 Batching API calls: ${items.length} items in batches of ${batchSize}`));
+    if (this.verbose) {
+      console.log(chalk.blue(`\n🤖 Batching API calls: ${items.length} items in batches of ${batchSize}`));
+    }
     
     const results = [];
     const batches = this.createBatches(items, batchSize);
@@ -149,7 +155,9 @@ class PerformanceOptimizer {
       this.performanceMetrics.phases.apiBatching.endTime - this.performanceMetrics.phases.apiBatching.startTime;
 
     const totalDuration = Date.now() - startTime;
-    console.log(chalk.green(`✅ API batching completed in ${totalDuration}ms`));
+    if (this.verbose) {
+      console.log(chalk.green(`✅ API batching completed in ${totalDuration}ms`));
+    }
     
     return results;
   }

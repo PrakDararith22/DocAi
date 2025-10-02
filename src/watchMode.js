@@ -1,7 +1,6 @@
 const chokidar = require('chokidar').default || require('chokidar');
 const path = require('path');
 const chalk = require('chalk').default || require('chalk');
-const { generateDocumentation } = require('./index');
 
 /**
  * Watch Mode
@@ -31,9 +30,11 @@ class WatchMode {
    * Start watching files for changes
    * @param {Array} files - Files to watch
    * @param {Object} options - Watch options
+   * @param {Function} generateDocFn - Documentation generation function
    * @returns {Promise<void>}
    */
-  async startWatching(files, options = {}) {
+  async startWatching(files, options = {}, generateDocFn = null) {
+    this.generateDocFn = generateDocFn;
     if (files.length === 0) {
       console.log(chalk.yellow('No files to watch.'));
       return;
@@ -172,7 +173,9 @@ class WatchMode {
 
       // Process the file
       const startTime = Date.now();
-      await generateDocumentation(fileOptions);
+      if (this.generateDocFn) {
+        await this.generateDocFn(fileOptions);
+      }
       const duration = Date.now() - startTime;
 
       // Mark file as processed by DocAI

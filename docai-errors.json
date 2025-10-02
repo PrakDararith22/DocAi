@@ -1,16 +1,42 @@
 {
-  "timestamp": "2025-09-29T07:21:42.144Z",
+  "timestamp": "2025-10-02T02:26:15.828Z",
   "version": "1.0.0",
   "report": {
     "summary": {
       "totalProcessed": 0,
       "successful": 0,
       "skipped": 0,
-      "failed": 0,
+      "failed": 1,
       "errorRate": 0
     },
-    "errors": [],
-    "categories": {},
+    "errors": [
+      {
+        "id": "ERR_1759371974840_x6jccijhv",
+        "timestamp": "2025-10-02T02:26:14.840Z",
+        "context": "Parsing: /Users/anbschool0005/docai/sth.py",
+        "type": "unknown",
+        "message": "Syntax error at line 13: '[' was never closed",
+        "stack": "Error: Syntax error at line 13: '[' was never closed\n    at /Users/anbschool0005/docai/src/index.js:226:67\n    at Array.forEach (<anonymous>)\n    at /Users/anbschool0005/docai/src/index.js:224:29\n    at Array.forEach (<anonymous>)\n    at generateDocumentation (/Users/anbschool0005/docai/src/index.js:219:88)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async Command.<anonymous> (/Users/anbschool0005/docai/bin/docai.js:61:7)",
+        "metadata": {
+          "filePath": "/Users/anbschool0005/docai/sth.py",
+          "language": "python",
+          "fileName": "sth.py"
+        },
+        "severity": "error"
+      }
+    ],
+    "categories": {
+      "unknown": {
+        "count": 1,
+        "severity": "error",
+        "examples": [
+          {
+            "message": "Syntax error at line 13: '[' was never closed",
+            "context": "Parsing: /Users/anbschool0005/docai/sth.py"
+          }
+        ]
+      }
+    },
     "recommendations": []
   }
 }

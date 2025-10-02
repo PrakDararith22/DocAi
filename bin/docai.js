@@ -49,7 +49,7 @@ program
       const enhancedOptions = {
         ...options,
         file: path,                    // Use path argument as file pattern
-        verbose: !options.quiet,       // Verbose by default, unless --quiet is specified
+        verbose: options.quiet !== undefined ? !options.quiet : undefined,  // Let config decide if not specified
         preview: !options.noPreview,   // Preview by default, unless --no-preview is specified
         lang: 'all',                   // Auto-determine language (always 'all')
         highLevel: options.readme,     // Map --readme to highLevel internally
