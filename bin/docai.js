@@ -7,6 +7,7 @@ const chalk = require('chalk').default || require('chalk');
 // Import main functionality
 const { generateDocumentation } = require('../src/index.js');
 const { initializeProject } = require('../src/initCommand.js');
+const { scanDocumentation } = require('../src/scanCommand.js');
 const { isInitialized, showInitPrompt } = require('../src/configValidator.js');
 
 program
@@ -29,6 +30,28 @@ program
     }
   });
 
+// Scan command (check documentation status)
+program
+  .command('scan')
+  .description('Scan for missing or outdated documentation (like git status)')
+  .argument('[path]', 'Target files or directory path', './src/')
+  .option('--verbose', 'Show detailed information')
+  .action(async (path, options) => {
+    try {
+      const scanOptions = {
+        ...options,
+        file: path,
+        project: process.cwd(),
+        lang: 'all'
+      };
+      
+      await scanDocumentation(scanOptions);
+    } catch (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+  });
+
 program
   .command('generate')
   .description('Generate documentation for your code files')
@@ -42,8 +65,6 @@ program
   .option('--no-interactive', 'Disable interactive mode (interactive is enabled by default)')
   .option('--batch-approval', 'Enable batch approval for similar items')
   .option('--save-preview <file>', 'Save preview to file without applying changes')
-  .option('--watch', 'Monitor files for changes and auto-update documentation')
-  .option('--debounce <ms>', 'Debounce delay for watch mode (default: 2000ms)', '2000')
   .option('--skip-errors', 'Continue processing even if some files have errors')
   .option('--timestamped', 'Create timestamped backup files (e.g., file_20250925_140530.py.bak)')
   .option('--strict', 'Stop processing on first error')
