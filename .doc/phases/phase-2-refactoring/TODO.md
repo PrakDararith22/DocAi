@@ -15,20 +15,20 @@
 ## 📅 Week 1: Core Implementation (Ready to Start)
 
 ### Day 1: CodeAnalyzer Module
-- [ ] Create `src/codeAnalyzer.js` file
-- [ ] Implement `analyzeFile()` function
-- [ ] Add code metrics functions:
-  - [ ] `getComplexity(code)`
-  - [ ] `getLineCount(code)`
-  - [ ] `getFunctionCount(code)`
-- [ ] Add code smell detection:
-  - [ ] `findLongFunctions(code)`
-  - [ ] `findDuplicateCode(code)`
-  - [ ] `findComplexConditions(code)`
-- [ ] Add context extraction:
-  - [ ] `getCodeContext(code, startLine, endLine)`
-- [ ] Write unit tests
-- [ ] Test with sample Python files
+- [x] Create `src/codeAnalyzer.js` file
+- [x] Implement `analyzeFile()` function
+- [x] Add code metrics functions:
+  - [x] `getComplexity(code)`
+  - [x] `getLineCount(code)`
+  - [x] `getFunctionCount(code)`
+- [x] Add code smell detection:
+  - [x] `findLongFunctions(code)`
+  - [x] `findDuplicateCode(code)`
+  - [x] `findComplexConditions(code)`
+- [x] Add context extraction:
+  - [x] `getCodeContext(code, startLine, endLine)`
+- [x] Write unit tests
+- [x] Test with sample Python files
 - [ ] Test with sample JavaScript files
 
 ---
