@@ -1,8 +1,8 @@
 {
   "name": "docai",
   "version": "1.0.0",
-  "description": "AI-powered CLI tool with interactive chat for documentation generation, code analysis, and refactoring",
-  "main": "src/index.js",
+  "description": "Interactive AI coding assistant with documentation generation capabilities",
+  "main": "src/chatCommand.js",
   "bin": {
     "docai": "./bin/docai.js"
   },
@@ -14,11 +14,8 @@
     "test:performance": "jest tests/performance",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "dev": "node --watch src/index.js",
-    "doc:watch": "nodemon --watch src --watch test --ext py,js,ts --exec \"docai generate --low-level --inline --backup --file \\\"./src/**/*.{py,js,ts}\\\" --file \\\"./test/**/*.{py,js,ts}\\\" --verbose\"",
-    "doc:watch:py": "nodemon --watch . --ext py --exec \"docai generate --low-level --inline --backup --file \\\"./**/*.py\\\" --verbose\"",
-    "doc:watch:js": "nodemon --watch . --ext js,ts --exec \"docai generate --low-level --inline --backup --file \\\"./**/*.{js,ts}\\\" --verbose\"",
-    "doc:readme": "docai generate --high-level --verbose"
+    "chat": "node src/chatCommand.js",
+    "dev": "node --watch src/index.js"
   },
   "keywords": [
     "documentation",
