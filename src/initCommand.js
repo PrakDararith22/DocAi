@@ -1,9 +1,25 @@
 const fs = require('fs').promises;
 const path = require('path');
-const inquirer = require('inquirer');
+const inquirer = require('inquirer').default || require('inquirer');
 const chalk = require('chalk').default || require('chalk');
-const ora = require('ora');
 const { createAIProvider } = require('./aiProviderFactory');
+
+// Handle ora import for different versions
+let ora;
+try {
+  ora = require('ora');
+  if (typeof ora !== 'function') {
+    ora = require('ora').default;
+  }
+} catch (error) {
+  // Fallback if ora is not available
+  ora = (text) => ({
+    start: () => ({ succeed: () => {}, fail: () => {}, stop: () => {} }),
+    succeed: () => {},
+    fail: () => {},
+    stop: () => {}
+  });
+}
 
 class ProjectInitializer {
   constructor(options = {}) {
