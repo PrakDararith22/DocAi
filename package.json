@@ -1,7 +1,7 @@
 {
   "name": "docai",
   "version": "1.0.0",
-  "description": "AI-powered CLI tool for automatically generating documentation for Python, JavaScript, and TypeScript code",
+  "description": "AI-powered CLI tool with interactive chat for documentation generation, code analysis, and refactoring",
   "main": "src/index.js",
   "bin": {
     "docai": "./bin/docai.js"
@@ -18,33 +18,35 @@
     "doc:watch": "nodemon --watch src --watch test --ext py,js,ts --exec \"docai generate --low-level --inline --backup --file \\\"./src/**/*.{py,js,ts}\\\" --file \\\"./test/**/*.{py,js,ts}\\\" --verbose\"",
     "doc:watch:py": "nodemon --watch . --ext py --exec \"docai generate --low-level --inline --backup --file \\\"./**/*.py\\\" --verbose\"",
     "doc:watch:js": "nodemon --watch . --ext js,ts --exec \"docai generate --low-level --inline --backup --file \\\"./**/*.{js,ts}\\\" --verbose\"",
-    "doc:generate": "docai generate --low-level --inline --backup --file \"./src/**/*.{py,js,ts}\" --file \"./test/**/*.{py,js,ts}\" --verbose",
     "doc:readme": "docai generate --high-level --verbose"
   },
   "keywords": [
     "documentation",
     "ai",
-    "cli",
+    "interactive-chat",
+    "code-analysis",
+    "refactoring",
     "python",
     "javascript",
     "typescript",
     "docstring",
-    "jsdoc"
+    "jsdoc",
+    "cli",
+    "automation",
+    "code-generation"
   ],
-  "author": "DocAI Team",
   "license": "MIT",
   "engines": {
     "node": ">=16.0.0"
   },
   "dependencies": {
     "@babel/parser": "^7.23.6",
-    "axios": "^1.12.2",
     "chalk": "^5.3.0",
     "chokidar": "^3.5.3",
     "cli-progress": "^3.12.0",
     "commander": "^11.1.0",
     "glob": "^10.3.10",
-    "inquirer": "^9.2.12",
+    "inquirer": "^12.9.6",
     "ora": "^7.0.1"
   },
   "devDependencies": {

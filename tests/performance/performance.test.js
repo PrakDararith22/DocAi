@@ -2,6 +2,18 @@ const { generateDocumentation } = require('../../src/index');
 const fs = require('fs').promises;
 const path = require('path');
 
+// Mock the AI provider factory to return a fast mock provider
+jest.mock('../../src/aiProviderFactory', () => ({
+  createAIProvider: jest.fn(() => ({
+    testConnection: jest.fn().mockResolvedValue({ success: true, message: 'Mock connection successful' }),
+    generateDocumentation: jest.fn().mockResolvedValue({ 
+      success: true, 
+      text: '"""Mock generated docstring for performance testing."""' 
+    }),
+    getStatus: jest.fn().mockReturnValue({ hasApiKey: true })
+  }))
+}));
+
 describe('Performance Tests', () => {
   const testProjectPath = path.join(__dirname, '../fixtures/performance-test');
 
@@ -53,7 +65,8 @@ class Processor_${i}:
         lowLevel: true,
         inline: true,
         verbose: false,
-        hf_token: 'test_token',
+        provider: 'gemini',
+        gemini_api_key: 'test_key',
         maxMemory: 100 // 100MB limit
       };
 
@@ -76,7 +89,8 @@ class Processor_${i}:
         lowLevel: true,
         inline: true,
         verbose: false,
-        hf_token: 'test_token'
+        provider: 'gemini',
+        gemini_api_key: 'test_key'
       };
 
       await generateDocumentation(options);
@@ -99,7 +113,8 @@ class Processor_${i}:
           lowLevel: true,
           inline: true,
           verbose: false,
-          hf_token: 'test_token',
+          provider: 'gemini',
+        gemini_api_key: 'test_key',
           concurrency: concurrency
         };
 
@@ -141,7 +156,8 @@ class Processor_${i}:
         lowLevel: true,
         inline: true,
         verbose: false,
-        hf_token: 'test_token'
+        provider: 'gemini',
+        gemini_api_key: 'test_key'
       };
 
       await generateDocumentation(options);
@@ -170,7 +186,8 @@ class Processor_${i}:
         lowLevel: true,
         inline: true,
         verbose: false,
-        hf_token: 'test_token',
+        provider: 'gemini',
+        gemini_api_key: 'test_key',
         skipErrors: true
       };
 

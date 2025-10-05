@@ -574,14 +574,18 @@ async function generateDocumentation(cliOptions) {
       }
     }
     
-    // Exit with appropriate code
-    process.exit(errorManager.getExitCode());
+    // Exit with appropriate code (skip in test environment)
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(errorManager.getExitCode());
+    }
     
   } catch (error) {
     errorManager.handleError(error, 'File Discovery', {});
     console.error(chalk.red('Error during file discovery:'), error.message);
     errorManager.printSummary();
-    process.exit(errorManager.getExitCode());
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(errorManager.getExitCode());
+    }
   }
 }
 

@@ -35,10 +35,12 @@ class CodeAnalyzer {
 
       // Get metrics (use parser for accurate function count)
       const functionCount = await this.getFunctionCount(code, language, filePath);
+      const classCount = await this.getClassCount(code, language, filePath);
       const metrics = {
         language,
         lineCount,
         functionCount,
+        classCount,
         complexity: this.getComplexity(code, language),
         averageLineLength: this.getAverageLineLength(code)
       };
@@ -48,18 +50,26 @@ class CodeAnalyzer {
         longFunctions: this.findLongFunctions(code, language),
         duplicateCode: this.findDuplicateCode(code),
         complexConditions: this.findComplexConditions(code, language),
+        complexFunctions: this.findComplexFunctions(code, language),
+        manyParameters: this.findFunctionsWithManyParameters(code, language),
         longLines: this.findLongLines(code)
       };
 
       return {
         filePath,
+        language,
         code,
         metrics,
-        smells,
+        codeSmells: smells,
         suggestions: this.generateSuggestions(metrics, smells)
       };
     } catch (error) {
-      throw new Error(`Failed to analyze ${filePath}: ${error.message}`);
+      // Return error object instead of throwing for graceful handling
+      return {
+        success: false,
+        error: error.message,
+        filePath
+      };
     }
   }
 
@@ -149,6 +159,57 @@ class CodeAnalyzer {
     
     const matches = code.match(pattern);
     return matches ? matches.length : 0;
+  }
+
+  /**
+   * Get class count using proper AST parsers
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @param {string} filePath - File path for parser
+   * @returns {Promise<number>} Number of classes
+   */
+  async getClassCount(code, language, filePath) {
+    // Use proper parsers per design specification
+    try {
+      if (language === 'python' && filePath) {
+        const parseResult = await this.pythonParser.parseFile(filePath);
+        return parseResult.classes ? parseResult.classes.length : 0;
+      } else if ((language === 'javascript' || language === 'typescript') && filePath) {
+        const parseResult = await this.jsParser.parseFile(filePath);
+        return parseResult.classes ? parseResult.classes.length : 0;
+      }
+    } catch (error) {
+      // Fallback to regex if parser fails
+      if (this.verbose) {
+        console.log(`Parser failed, using regex fallback: ${error.message}`);
+      }
+    }
+    
+    // Fallback: simple pattern matching
+    let pattern;
+    switch (language) {
+      case 'python':
+        pattern = /^\s*class\s+\w+/gm;
+        break;
+      case 'javascript':
+      case 'typescript':
+        pattern = /class\s+\w+/gm;
+        break;
+      default:
+        return 0;
+    }
+    
+    const matches = code.match(pattern);
+    return matches ? matches.length : 0;
+  }
+
+  /**
+   * Get language from file path
+   * @param {string} filePath - File path
+   * @returns {string} Language identifier
+   */
+  getLanguageFromPath(filePath) {
+    return this.detectLanguage(filePath);
   }
 
   /**
@@ -357,6 +418,115 @@ class CodeAnalyzer {
     });
     
     return longLines.slice(0, 10); // Return top 10
+  }
+
+  /**
+   * Find complex functions (high cyclomatic complexity)
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Array} Complex functions
+   */
+  findComplexFunctions(code, language) {
+    const complexFunctions = [];
+    const lines = code.split('\n');
+    
+    if (language === 'python') {
+      // Find Python functions and analyze their complexity
+      for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/^\s*def\s+(\w+)\s*\(/);
+        if (match) {
+          const functionName = match[1];
+          const startLine = i + 1;
+          const indent = lines[i].match(/^\s*/)[0].length;
+          
+          // Find end of function
+          let endLine = i + 1;
+          let functionCode = lines[i];
+          for (let j = i + 1; j < lines.length; j++) {
+            const currentIndent = lines[j].match(/^\s*/)[0].length;
+            if (lines[j].trim() && currentIndent <= indent && 
+                (lines[j].match(/^\s*def\s+/) || lines[j].match(/^\s*class\s+/))) {
+              endLine = j;
+              break;
+            }
+            functionCode += '\n' + lines[j];
+            endLine = j + 1;
+          }
+          
+          // Calculate complexity for this function
+          const complexity = this.getComplexity(functionCode, language);
+          if (complexity > 10) {
+            complexFunctions.push({
+              name: functionName,
+              startLine,
+              endLine,
+              complexity,
+              reason: `Function has high complexity (${complexity} > 10)`
+            });
+          }
+        }
+      }
+    }
+    
+    return complexFunctions;
+  }
+
+  /**
+   * Find functions with many parameters
+   * @param {string} code - Source code
+   * @param {string} language - Programming language
+   * @returns {Array} Functions with many parameters
+   */
+  findFunctionsWithManyParameters(code, language) {
+    const manyParamFunctions = [];
+    const lines = code.split('\n');
+    
+    if (language === 'python') {
+      lines.forEach((line, index) => {
+        const match = line.match(/^\s*def\s+(\w+)\s*\(([^)]*)\)/);
+        if (match) {
+          const functionName = match[1];
+          const params = match[2].trim();
+          
+          if (params) {
+            // Count parameters (split by comma, but be careful of default values)
+            const paramCount = params.split(',').filter(p => p.trim()).length;
+            if (paramCount > 5) {
+              manyParamFunctions.push({
+                name: functionName,
+                line: index + 1,
+                paramCount,
+                reason: `Function has ${paramCount} parameters (> 5)`
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    if (language === 'javascript' || language === 'typescript') {
+      lines.forEach((line, index) => {
+        const match = line.match(/function\s+(\w+)\s*\(([^)]*)\)|const\s+(\w+)\s*=\s*\(([^)]*)\)/);
+        if (match) {
+          const functionName = match[1] || match[3];
+          const params = (match[2] || match[4] || '').trim();
+          
+          if (params) {
+            const paramCount = params.split(',').filter(p => p.trim()).length;
+            if (paramCount > 5) {
+              manyParamFunctions.push({
+                name: functionName,
+                line: index + 1,
+                paramCount,
+                reason: `Function has ${paramCount} parameters (> 5)`
+              });
+            }
+          }
+        }
+      });
+    }
+    
+    return manyParamFunctions;
   }
 
   /**

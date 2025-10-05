@@ -1,7 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const chalk = require('chalk').default || require('chalk');
-const inquirer = require('inquirer');
+const inquirer = require('inquirer').default || require('inquirer');
 const CodeRefactorer = require('./codeRefactorer');
 const RefactoringUI = require('./refactoringUI');
 const FileDiscovery = require('./fileDiscovery');
@@ -46,18 +46,17 @@ async function refactorCode(filePath, cliOptions) {
     // Show single-file warning
     ui.showWarning('⚠️  Single-file refactoring mode');
     ui.showInfo('Changes may affect other files that import from here');
-    ui.showInfo('Please run your tests after refactoring\n');
     
     // Process each file
     const allResults = [];
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      if (files.length > 1) {
-        console.log(chalk.cyan(`\n${'='.repeat(60)}`));
-        console.log(chalk.cyan.bold(`  File ${i + 1}/${files.length}: ${path.basename(file.path)}`));
-        console.log(chalk.cyan(`${'='.repeat(60)}\n`));
+        
+        if (files.length > 1) {
+          console.log(chalk.cyan(`\n${'='.repeat(60)}`));
+          console.log(chalk.cyan.bold(`  File ${i + 1}/${files.length}: ${path.basename(file.path)}`));
+          console.log(chalk.cyan(`${'='.repeat(60)}\n`));
       }
       
       try {
@@ -208,7 +207,7 @@ async function processFile(file, options, refactorer, ui) {
     await fs.writeFile(file.path, result.modifiedCode, 'utf-8');
     
     // Cleanup backup on success
-    await refactorer.backupManager.cleanupBackup(file.path);
+    await refactorer.backupManager.cleanupBackups(file.path);
     
     // Show results
     ui.showResults({

@@ -1,5 +1,5 @@
 const chalk = require('chalk').default || require('chalk');
-const inquirer = require('inquirer');
+const inquirer = require('inquirer').default || require('inquirer');
 
 /**
  * Refactoring UI
@@ -16,24 +16,27 @@ class RefactoringUI {
    * Show refactoring suggestions
    * @param {Array} suggestions - Refactoring suggestions
    * @param {string} filePath - File path
+   * @returns {Array} Suggestions for backward compatibility
    */
   showSuggestions(suggestions, filePath) {
     console.log('');
     console.log(chalk.cyan('━'.repeat(60)));
-    console.log(chalk.cyan.bold(`  Refactoring Suggestions for ${filePath}`));
+    console.log(chalk.cyan.bold(`  Refactoring Suggestions for ${filePath || 'file'}`));
     console.log(chalk.cyan('━'.repeat(60)));
     console.log('');
 
-    if (suggestions.length === 0) {
+    if (!suggestions || suggestions.length === 0) {
       console.log(chalk.yellow('  No refactoring suggestions found.'));
       console.log(chalk.gray('  The code looks good!'));
       console.log('');
-      return;
+      return [];
     }
 
     suggestions.forEach((suggestion, index) => {
       this.showSingleSuggestion(suggestion, index + 1);
     });
+
+    return suggestions;
   }
 
   /**
@@ -42,13 +45,20 @@ class RefactoringUI {
    * @param {number} number - Suggestion number
    */
   showSingleSuggestion(suggestion, number) {
-    // Header with type and impact
-    const typeIcon = this.getTypeIcon(suggestion.type);
-    const impactColor = this.getImpactColor(suggestion.impact);
-    const impactText = (suggestion.impact || 'medium').toUpperCase();
+    // Handle missing properties gracefully
+    const title = suggestion.title || 'Refactoring suggestion';
+    const type = suggestion.type || 'improvement';
+    const impact = suggestion.impact || 'medium';
+    const lineStart = suggestion.lineStart || 1;
+    const lineEnd = suggestion.lineEnd || 1;
     
-    console.log(chalk.white.bold(`[${number}] ${typeIcon} ${suggestion.title}`));
-    console.log(chalk.gray(`    Lines ${suggestion.lineStart}-${suggestion.lineEnd} | Impact: ${impactColor(impactText)}`));
+    // Header with type and impact
+    const typeIcon = this.getTypeIcon(type);
+    const impactColor = this.getImpactColor(impact);
+    const impactText = impact.toUpperCase();
+    
+    console.log(chalk.white.bold(`[${number}] ${typeIcon} ${title}`));
+    console.log(chalk.gray(`    Lines ${lineStart}-${lineEnd} | Impact: ${impactColor(impactText)}`));
     console.log('');
 
     // Description
@@ -65,19 +75,21 @@ class RefactoringUI {
     }
 
     // Show code comparison
-    console.log(chalk.gray('    Current:'));
-    const originalLines = suggestion.originalCode.split('\n');
-    originalLines.forEach(line => {
-      console.log(chalk.red(`    - ${line}`));
-    });
-    console.log('');
+    if (suggestion.originalCode && suggestion.refactoredCode) {
+      console.log(chalk.gray('    Current:'));
+      const originalLines = suggestion.originalCode.split('\n');
+      originalLines.forEach(line => {
+        console.log(chalk.red(`    - ${line}`));
+      });
+      console.log('');
 
-    console.log(chalk.gray('    Improved:'));
-    const refactoredLines = suggestion.refactoredCode.split('\n');
-    refactoredLines.forEach(line => {
-      console.log(chalk.green(`    + ${line}`));
-    });
-    console.log('');
+      console.log(chalk.gray('    Improved:'));
+      const refactoredLines = suggestion.refactoredCode.split('\n');
+      refactoredLines.forEach(line => {
+        console.log(chalk.green(`    + ${line}`));
+      });
+      console.log('');
+    }
 
     // Reason and improvement
     if (suggestion.reason) {
@@ -139,7 +151,7 @@ class RefactoringUI {
       checked: false
     }));
 
-    choices.push(new inquirer.Separator());
+    choices.push({ type: 'separator' });
     choices.push({
       name: chalk.gray('Select all'),
       value: 'all',
@@ -187,16 +199,20 @@ class RefactoringUI {
 
     // Show before (red)
     console.log(chalk.red.bold('  Before:'));
-    preview.original.forEach(line => {
-      console.log(chalk.red(`  - ${line}`));
-    });
+    if (preview.original && Array.isArray(preview.original)) {
+      preview.original.forEach(line => {
+        console.log(chalk.red(`  - ${line}`));
+      });
+    }
     console.log('');
 
     // Show after (green)
     console.log(chalk.green.bold('  After:'));
-    preview.refactored.forEach(line => {
-      console.log(chalk.green(`  + ${line}`));
-    });
+    if (preview.refactored && Array.isArray(preview.refactored)) {
+      preview.refactored.forEach(line => {
+        console.log(chalk.green(`  + ${line}`));
+      });
+    }
     console.log('');
 
     // Show context after
@@ -219,10 +235,17 @@ class RefactoringUI {
 
   /**
    * Confirm application of refactorings
-   * @param {number} count - Number of refactorings
+   * @param {number|Array} countOrSuggestions - Number of refactorings or suggestions array
    * @returns {Promise<boolean>} User confirmed
    */
-  async confirmApply(count) {
+  async confirmApply(countOrSuggestions) {
+    // Handle both number and array inputs for backward compatibility
+    const count = Array.isArray(countOrSuggestions) ? countOrSuggestions.length : countOrSuggestions;
+    
+    if (count === 0) {
+      return false;
+    }
+
     console.log(chalk.cyan('━'.repeat(60)));
     console.log('');
 
@@ -337,6 +360,35 @@ class RefactoringUI {
     console.log('');
     console.log(chalk.green('  ✅ ' + message));
     console.log('');
+  }
+
+  /**
+   * Format impact level with colors
+   * @param {string} impact - Impact level
+   * @returns {string} Formatted impact
+   */
+  formatImpact(impact) {
+    const color = this.getImpactColor(impact);
+    return color(impact.toUpperCase());
+  }
+
+  /**
+   * Format suggestion type with colors
+   * @param {string} type - Suggestion type
+   * @returns {string} Formatted type
+   */
+  formatType(type) {
+    const icon = this.getTypeIcon(type);
+    const colors = {
+      'performance': chalk.red,
+      'readability': chalk.blue,
+      'best-practice': chalk.green,
+      'best-practices': chalk.green,
+      'design-pattern': chalk.magenta,
+      'design-patterns': chalk.magenta
+    };
+    const color = colors[type] || chalk.white;
+    return `${icon} ${color(type)}`;
   }
 }
 

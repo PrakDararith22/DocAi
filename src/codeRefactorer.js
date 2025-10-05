@@ -1,6 +1,7 @@
 const CodeAnalyzer = require('./codeAnalyzer');
 const BackupManager = require('./backupManager');
 const { createAIProvider } = require('./aiProviderFactory');
+const LocalRefactorer = require('./localRefactorer');
 
 /**
  * Code Refactorer
@@ -13,6 +14,7 @@ class CodeRefactorer {
     this.analyzer = new CodeAnalyzer(options);
     this.backupManager = new BackupManager(options);
     this.aiProvider = createAIProvider(options);
+    this.localRefactorer = new LocalRefactorer(options);
   }
 
   /**
@@ -50,6 +52,11 @@ class CodeRefactorer {
    */
   async getSuggestions(code, language, focusAreas = ['all'], filePath = null) {
     try {
+      // Try AI first
+      if (this.verbose) {
+        console.log('🤖 Requesting AI suggestions...');
+      }
+      
       // Analyze code first - use filePath if available for proper parsing
       const analysis = filePath 
         ? await this.analyzer.analyzeFile(filePath)
@@ -58,22 +65,30 @@ class CodeRefactorer {
       // Build AI prompt based on focus areas
       const prompt = this.buildPrompt(code, language, focusAreas, analysis);
       
-      if (this.verbose) {
-        console.log('🤖 Requesting AI suggestions...');
+      // Get AI response
+      const response = await this.aiProvider.generateDocumentation(prompt);
+      
+      if (!response.success) {
+        throw new Error(`AI provider error: ${response.error}`);
       }
       
-      // Get AI response
-      const response = await this.aiProvider.generate(prompt);
-      
       // Parse and validate response
-      const suggestions = this.parseResponse(response);
+      const suggestions = this.parseResponse(response.text);
       
       // Filter by focus areas and limit to 3-5
       const filtered = this.filterSuggestions(suggestions, focusAreas);
       
       return filtered.slice(0, 5); // Max 5 suggestions
     } catch (error) {
-      throw new Error(`Failed to get suggestions: ${error.message}`);
+      // Fallback to local refactorer
+      console.log('⚠️  AI provider failed, using local analysis...');
+      
+      try {
+        const localSuggestions = await this.localRefactorer.getSuggestions(code, language, focusAreas, filePath);
+        return localSuggestions;
+      } catch (localError) {
+        throw new Error(`Both AI and local refactoring failed: ${error.message}, ${localError.message}`);
+      }
     }
   }
 

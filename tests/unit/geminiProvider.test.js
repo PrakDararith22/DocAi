@@ -150,7 +150,8 @@ describe('GeminiProvider', () => {
           data: { error: { message: 'Rate limit exceeded' } }
         }
       };
-      mockedAxios.mockRejectedValueOnce(error);
+      // Mock all retry attempts to fail
+      mockedAxios.mockRejectedValue(error);
 
       const result = await provider.generateDocumentation('test prompt');
 
@@ -161,7 +162,7 @@ describe('GeminiProvider', () => {
 
     test('should map timeout to TIMEOUT_ERROR', async () => {
       const error = { code: 'ECONNABORTED' };
-      mockedAxios.mockRejectedValueOnce(error);
+      mockedAxios.mockRejectedValue(error);
 
       const result = await provider.generateDocumentation('test prompt');
 
@@ -172,7 +173,7 @@ describe('GeminiProvider', () => {
 
     test('should map network errors to NETWORK_ERROR', async () => {
       const error = { code: 'ENOTFOUND' };
-      mockedAxios.mockRejectedValueOnce(error);
+      mockedAxios.mockRejectedValue(error);
 
       const result = await provider.generateDocumentation('test prompt');
 

@@ -1,4 +1,5 @@
-const axios = require('axios');
+const https = require('https');
+const { URL } = require('url');
 const chalk = require('chalk').default || require('chalk');
 
 /**
@@ -8,10 +9,10 @@ const chalk = require('chalk').default || require('chalk');
 class GeminiProvider {
   constructor(options = {}) {
     this.apiKey = process.env.GOOGLE_API_KEY || options.gemini_api_key;
-    this.model = options.gemini_model || process.env.DOC_MODEL || 'gemini-1.5-flash-latest';
+    this.model = options.gemini_model || process.env.DOC_MODEL || 'gemini-1.5-flash';
     this.baseURL = 'https://generativelanguage.googleapis.com';
-    this.apiPath = options.gemini_api_path || 'v1'; // allow switching to v1beta if needed
-    this.timeout = options.timeout || 30000;
+    this.apiPath = options.gemini_api_path || 'v1beta';
+    this.timeout = options.timeout || 15000;
     this.maxRetries = options.maxRetries || 3;
     this.rateLimit = options.rateLimit || 5; // req/s
     this.verbose = options.verbose || false;
@@ -42,7 +43,8 @@ class GeminiProvider {
         ]
       };
 
-      const response = await this._requestWithRetry({
+      // Add a race condition with a timeout to prevent hanging
+      const requestPromise = this._requestWithRetry({
         method: 'POST',
         url,
         headers: {
@@ -53,12 +55,30 @@ class GeminiProvider {
         timeout: this.timeout
       });
 
-      // Extract text from candidates
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout - no response received')), this.timeout + 5000);
+      });
+
+      const response = await Promise.race([requestPromise, timeoutPromise]);
+
+      // Extract text from candidates with error handling
       const candidates = response.data?.candidates || [];
+      if (candidates.length === 0) {
+        throw new Error('No candidates in response');
+      }
+
       const parts = candidates[0]?.content?.parts || [];
+      if (parts.length === 0) {
+        throw new Error('No parts in response content');
+      }
+
       const textParts = parts
         .map(p => (typeof p.text === 'string' ? p.text : ''))
         .filter(Boolean);
+
+      if (textParts.length === 0) {
+        throw new Error('No text content in response');
+      }
 
       const text = textParts.join('\n').trim();
 
@@ -100,7 +120,7 @@ class GeminiProvider {
     let lastError;
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        return await axios(config);
+        return await this._makeHttpRequest(config);
       } catch (error) {
         lastError = error;
         const status = error.response?.status;
@@ -118,6 +138,66 @@ class GeminiProvider {
       }
     }
     throw lastError;
+  }
+
+  _makeHttpRequest(config) {
+    return new Promise((resolve, reject) => {
+        const url = new URL(config.url);
+        const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy;
+
+        const options = {
+            method: config.method,
+            headers: config.headers,
+        };
+
+        if (proxyUrl) {
+            const proxy = new URL(proxyUrl);
+            options.host = proxy.hostname;
+            options.port = proxy.port;
+            options.path = url.href;
+            options.headers.Host = url.host;
+        } else {
+            options.hostname = url.hostname;
+            options.path = url.pathname + url.search;
+        }
+
+        // Set up timeout manually
+        const timeoutId = setTimeout(() => {
+            req.destroy();
+            reject(new Error(`Request timeout after ${config.timeout}ms`));
+        }, config.timeout);
+
+        const req = https.request(options, (res) => {
+            clearTimeout(timeoutId);
+            let data = '';
+            
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+                try {
+                    const jsonData = JSON.parse(data);
+                    if (res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve({ data: jsonData, status: res.statusCode });
+                    } else {
+                        const error = new Error(`Request failed with status code ${res.statusCode}`);
+                        error.response = { data: jsonData, status: res.statusCode };
+                        reject(error);
+                    }
+                } catch (e) {
+                    reject(new Error('Failed to parse JSON response: ' + e.message));
+                }
+            });
+        });
+
+        req.on('error', (e) => {
+            clearTimeout(timeoutId);
+            reject(e);
+        });
+
+        if (config.data) {
+            req.write(JSON.stringify(config.data));
+        }
+        req.end();
+    });
   }
 
   async _enforceRateLimit() {
