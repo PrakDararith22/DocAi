@@ -30,6 +30,11 @@ class GeminiProvider {
     }
   }
 
+  async generate(prompt, options = {}) {
+    // Backward compatibility - delegate to generateDocumentation
+    return this.generateDocumentation(prompt, options);
+  }
+
   async generateDocumentation(prompt, options = {}) {
     try {
       await this._enforceRateLimit();
