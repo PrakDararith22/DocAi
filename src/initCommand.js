@@ -248,8 +248,10 @@ class ProjectInitializer {
       choices: (answers) => {
         if (answers.provider === 'gemini') {
           return [
-            { name: 'gemini-2.5-flash (Recommended)', value: 'gemini-2.5-flash' },
-            { name: 'gemini-1.5-flash-latest', value: 'gemini-1.5-flash-latest' }
+            { name: 'gemini-2.0-flash (Recommended)', value: 'gemini-2.0-flash' },
+            { name: 'gemini-2.0-flash-exp', value: 'gemini-2.0-flash-exp' },
+            { name: 'gemini-2.0-flash-001', value: 'gemini-2.0-flash-001' },
+            { name: 'gemini-2.5-pro', value: 'gemini-2.5-pro' }
           ];
         } else {
           return [
@@ -391,7 +393,8 @@ class ProjectInitializer {
         benchmark: false,
         verbose: answers.verbose,
         style: answers.style,
-        provider: answers.provider
+        provider: answers.provider,
+        gemini_model: 'gemini-2.0-flash' // Default to available model
         // inline and output are not in config - inline is automatic based on --output flag
       };
       
@@ -400,6 +403,8 @@ class ProjectInitializer {
         config.gemini_api_key = answers.apiKey;
         if (answers.model) {
           config.gemini_model = answers.model;
+        } else {
+          config.gemini_model = 'gemini-2.0-flash'; // Default to available model
         }
       } else {
         config.hf_token = answers.apiKey;

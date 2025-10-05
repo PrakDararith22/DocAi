@@ -9,7 +9,7 @@ const chalk = require('chalk').default || require('chalk');
 class GeminiProvider {
   constructor(options = {}) {
     this.apiKey = process.env.GOOGLE_API_KEY || options.gemini_api_key;
-    this.model = options.gemini_model || process.env.DOC_MODEL || 'gemini-1.5-flash';
+    this.model = options.gemini_model || process.env.DOC_MODEL || 'gemini-2.0-flash';
     this.baseURL = 'https://generativelanguage.googleapis.com';
     this.apiPath = options.gemini_api_path || 'v1beta';
     this.timeout = options.timeout || 15000;
