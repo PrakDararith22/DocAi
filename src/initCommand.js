@@ -209,7 +209,7 @@ class ProjectInitializer {
 
     // Add API key question based on provider
     questions.push({
-      type: 'password',
+      type: 'input',
       name: 'apiKey',
       message: (answers) => {
         if (answers.provider === 'gemini') {
