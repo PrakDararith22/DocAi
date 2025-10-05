@@ -48,11 +48,15 @@ class ProjectInitializer {
       // Ask questions
       const answers = await this.askQuestions(projectInfo);
 
-      // Validate API key
-      const isValid = await this.validateApiKey(answers.provider, answers.apiKey);
-      if (!isValid) {
-        console.log(chalk.red('\n❌ API key validation failed. Please try again.\n'));
-        return;
+      // Validate API key (unless skipped)
+      if (!answers.skipValidation) {
+        const isValid = await this.validateApiKey(answers.provider, answers.apiKey);
+        if (!isValid) {
+          console.log(chalk.red('\n❌ API key validation failed. Please try again.\n'));
+          return;
+        }
+      } else {
+        console.log(chalk.yellow('\n⚠️  Skipping API key validation as requested.'));
       }
 
       // Generate config
@@ -224,6 +228,14 @@ class ProjectInitializer {
         }
         return true;
       }
+    });
+
+    // Add option to skip API validation
+    questions.push({
+      type: 'confirm',
+      name: 'skipValidation',
+      message: 'Skip API key validation? (Useful if API is temporarily unavailable)',
+      default: false
     });
 
     // Add model selection for Gemini
