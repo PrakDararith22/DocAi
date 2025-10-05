@@ -330,12 +330,12 @@ class ProjectInitializer {
       const aiProvider = createAIProvider(providerConfig);
       
       // Test with simple prompt
-      const response = await aiProvider.generate('Say "test"', {
+      const response = await aiProvider.generateDocumentation('Say "test"', {
         maxTokens: 10,
         temperature: 0.1
       });
       
-      if (response && response.length > 0) {
+      if (response && response.success && response.text) {
         spinner.succeed(chalk.green('Connection successful!'));
         return true;
       } else {
