@@ -48,15 +48,17 @@ class ProjectInitializer {
       // Ask questions
       const answers = await this.askQuestions(projectInfo);
 
-      // Validate API key (unless skipped)
-      if (!answers.skipValidation) {
+      // Validate API key (unless skipped or test disabled)
+      if (answers.testApiKey && !answers.skipValidation) {
         const isValid = await this.validateApiKey(answers.provider, answers.apiKey);
         if (!isValid) {
           console.log(chalk.red('\n❌ API key validation failed. Please try again.\n'));
           return;
         }
-      } else {
+      } else if (answers.skipValidation) {
         console.log(chalk.yellow('\n⚠️  Skipping API key validation as requested.'));
+      } else {
+        console.log(chalk.yellow('\n⚠️  Skipping API key test as requested.'));
       }
 
       // Generate config
@@ -230,12 +232,12 @@ class ProjectInitializer {
       }
     });
 
-    // Add option to skip API validation
+    // Add option to test API key manually
     questions.push({
       type: 'confirm',
-      name: 'skipValidation',
-      message: 'Skip API key validation? (Useful if API is temporarily unavailable)',
-      default: false
+      name: 'testApiKey',
+      message: 'Test API key by sending a request to the API?',
+      default: true
     });
 
     // Add model selection for Gemini
@@ -352,6 +354,7 @@ class ProjectInitializer {
         return true;
       } else {
         spinner.fail('Connection failed: No response from API');
+        console.log(chalk.gray(`Debug info: Response object: ${JSON.stringify(response)}`));
         return false;
       }
     } catch (error) {
