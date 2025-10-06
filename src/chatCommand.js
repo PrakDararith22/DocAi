@@ -27,7 +27,79 @@ class ChatSession {
     this.fileModifier = new FileModifier(options);
   }
 
+  async checkAPIKey() {
+    const apiKey = process.env.GOOGLE_API_KEY || this.options.gemini_api_key;
+    
+    if (!apiKey) {
+      console.log(chalk.red.bold('\n❌ No API key found!\n'));
+      console.log(chalk.yellow('DocAI requires a Google Gemini API key to work properly.'));
+      console.log(chalk.gray('\nTo get your API key:'));
+      console.log(chalk.gray('1. Go to https://aistudio.google.com/app/apikey'));
+      console.log(chalk.gray('2. Create a new API key'));
+      console.log(chalk.gray('3. Set it as an environment variable:'));
+      console.log(chalk.cyan('   export GOOGLE_API_KEY="your_api_key_here"\n'));
+      
+      const { action } = await inquirer.prompt([{
+        type: 'list',
+        name: 'action',
+        message: 'What would you like to do?',
+        choices: [
+          { name: 'Enter API key now', value: 'enter' },
+          { name: 'Exit and set environment variable', value: 'exit' },
+          { name: 'Continue with limited functionality', value: 'continue' }
+        ]
+      }]);
+
+      if (action === 'enter') {
+        const { apiKeyInput } = await inquirer.prompt([{
+          type: 'password',
+          name: 'apiKeyInput',
+          message: 'Enter your Google Gemini API key:',
+          validate: (input) => input.trim().length > 0 || 'API key is required'
+        }]);
+        
+        process.env.GOOGLE_API_KEY = apiKeyInput.trim();
+        this.options.gemini_api_key = apiKeyInput.trim();
+        
+        // Recreate AI provider with new key
+        this.aiProvider = createAIProvider(this.options);
+        this.docGenerator = new DocumentationGenerator(this.options);
+        
+        console.log(chalk.green('✅ API key set! Testing connection...'));
+        
+        // Test the connection
+        const testResult = await this.aiProvider.testConnection();
+        if (testResult.success) {
+          console.log(chalk.green('✅ Connection successful!'));
+        } else {
+          console.log(chalk.red(`❌ Connection failed: ${testResult.message}`));
+          console.log(chalk.yellow('Continuing with limited functionality...'));
+        }
+      } else if (action === 'exit') {
+        console.log(chalk.gray('\nSet your API key and run DocAI again:'));
+        console.log(chalk.cyan('export GOOGLE_API_KEY="your_key"'));
+        console.log(chalk.cyan('npx docai\n'));
+        process.exit(0);
+      } else {
+        console.log(chalk.yellow('⚠️  Continuing with limited functionality (local code generation only)'));
+      }
+    } else {
+      // Test existing API key
+      console.log(chalk.gray('🔍 Testing API connection...'));
+      const testResult = await this.aiProvider.testConnection();
+      if (testResult.success) {
+        console.log(chalk.green('✅ API connection successful!'));
+      } else {
+        console.log(chalk.red(`❌ API connection failed: ${testResult.message}`));
+        console.log(chalk.yellow('Continuing with limited functionality...'));
+      }
+    }
+  }
+
   async start() {
+    // Check API key first
+    await this.checkAPIKey();
+    
     console.log(chalk.blue.bold('\n💬 DocAI Interactive Chat\n'));
     console.log(chalk.gray('🔧 Code Operations:'));
     console.log(chalk.gray('  /load <file>     - Load file into context'));
@@ -37,8 +109,9 @@ class ChatSession {
     console.log(chalk.gray('  /append          - Append code to end of file'));
     console.log(chalk.gray(''));
     console.log(chalk.gray('📚 Documentation:'));
-    console.log(chalk.gray('  /docs            - Generate docs for loaded files'));
-    console.log(chalk.gray('  /docgen          - Generate docs for specific functions'));
+    console.log(chalk.gray('  /docs <pattern>  - Generate docs for files'));
+    console.log(chalk.gray('  /scan            - Scan loaded files for functions/classes'));
+    console.log(chalk.gray('  /generate        - Generate docs for all functions/classes'));
     console.log(chalk.gray(''));
     console.log(chalk.gray('🔍 Analysis:'));
     console.log(chalk.gray('  /analyze         - Analyze code quality and structure'));
@@ -296,19 +369,25 @@ User request: ${userMessage}
   async generateLocalResponse(message) {
     const lowerMessage = message.toLowerCase();
     
-    // Simple pattern matching for common requests
-    if (lowerMessage.includes('add') && (lowerMessage.includes('function') || lowerMessage.includes('sum'))) {
+    // Enhanced pattern matching for better responses
+    if (lowerMessage.includes('sum') || lowerMessage.includes('add')) {
       return this.generateSumFunction();
-    } else if (lowerMessage.includes('add') && lowerMessage.includes('multiply')) {
+    } else if (lowerMessage.includes('multiply') || lowerMessage.includes('product')) {
       return this.generateMultiplyFunction();
-    } else if (lowerMessage.includes('add') && lowerMessage.includes('sort')) {
+    } else if (lowerMessage.includes('sort') || lowerMessage.includes('order')) {
       return this.generateSortFunction();
     } else if (lowerMessage.includes('test') || lowerMessage.includes('unit test')) {
       return this.generateTestFunction();
+    } else if (lowerMessage.includes('random') || lowerMessage.includes('generate')) {
+      return this.generateRandomFunction();
+    } else if (lowerMessage.includes('fibonacci')) {
+      return this.generateFibonacciFunction();
+    } else if (lowerMessage.includes('prime') || lowerMessage.includes('is_prime')) {
+      return this.generatePrimeFunction();
     } else {
       return {
         success: true,
-        text: `I understand you want to: "${message}"\n\nHere's a simple template function:\n\n\`\`\`python\ndef new_function():\n    """Generated function based on your request."""\n    # TODO: Implement your logic here\n    pass\n\`\`\``
+        text: `I understand you want to: "${message}"\n\nHere's a simple template function:\n\n\`\`\`python\ndef new_function():\n    """Generated function based on your request."""\n    # TODO: Implement your logic here\n    pass\n\`\`\`\n\n💡 For better AI-generated code, please set your GOOGLE_API_KEY environment variable.`
       };
     }
   }
@@ -338,6 +417,27 @@ User request: ${userMessage}
     return {
       success: true,
       text: `I'll add a test function to your file:\n\n\`\`\`python\ndef test_functions():\n    """\n    Test the functions in this module.\n    """\n    # Test longest_unique_substring\n    assert longest_unique_substring("abcabcbb") == "abc"\n    \n    # Test reverse_string\n    assert reverse_string("hello") == "olleh"\n    \n    print("All tests passed!")\n\`\`\``
+    };
+  }
+
+  generateRandomFunction() {
+    return {
+      success: true,
+      text: `I'll add a random number generator function:\n\n\`\`\`python\nimport random\n\ndef generate_random_number(min_val=1, max_val=100):\n    """\n    Generate a random integer between min_val and max_val.\n    \n    Args:\n        min_val (int): Minimum value (inclusive)\n        max_val (int): Maximum value (inclusive)\n        \n    Returns:\n        int: Random number in the specified range\n    """\n    return random.randint(min_val, max_val)\n\`\`\``
+    };
+  }
+
+  generateFibonacciFunction() {
+    return {
+      success: true,
+      text: `I'll add a Fibonacci function:\n\n\`\`\`python\ndef fibonacci(n):\n    """\n    Calculate the nth Fibonacci number.\n    \n    Args:\n        n (int): Position in Fibonacci sequence\n        \n    Returns:\n        int: The nth Fibonacci number\n    """\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)\n\`\`\``
+    };
+  }
+
+  generatePrimeFunction() {
+    return {
+      success: true,
+      text: `I'll add a prime number checker function:\n\n\`\`\`python\ndef is_prime(n):\n    """\n    Check if a number is prime.\n    \n    Args:\n        n (int): Number to check\n        \n    Returns:\n        bool: True if prime, False otherwise\n    """\n    if n < 2:\n        return False\n    for i in range(2, int(n**0.5) + 1):\n        if n % i == 0:\n            return False\n    return True\n\`\`\``
     };
   }
 
