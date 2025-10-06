@@ -167,6 +167,7 @@ class GeminiProvider {
         }
 
         // Set up timeout manually
+        let req;
         const timeoutId = setTimeout(() => {
             if (req) {
                 req.destroy();
@@ -174,7 +175,7 @@ class GeminiProvider {
             reject(new Error(`Request timeout after ${config.timeout}ms`));
         }, config.timeout);
 
-        const req = https.request(options, (res) => {
+        req = https.request(options, (res) => {
             clearTimeout(timeoutId);
             let data = '';
             
