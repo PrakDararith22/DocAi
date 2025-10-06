@@ -4,7 +4,11 @@ const chalk = require('chalk').default || require('chalk');
 const inquirer = require('inquirer').default || require('inquirer');
 const { createAIProvider } = require('./aiProviderFactory');
 const { resolveOptions } = require('./config');
-const DocumentationCommandHandler = require('./documentationCommandHandler');
+const DocumentationGenerator = require('./documentationGenerator');
+const ParserManager = require('./parserManager');
+const FileDiscovery = require('./fileDiscovery');
+const BackupManager = require('./backupManager');
+const FileModifier = require('./fileModifier');
 
 /**
  * Interactive Chat Command for Code Generation and Modification
@@ -16,7 +20,11 @@ class ChatSession {
     this.loadedFiles = new Map(); // filename -> content
     this.chatHistory = [];
     this.verbose = options.verbose || false;
-    this.docHandler = new DocumentationCommandHandler(options);
+    this.docGenerator = new DocumentationGenerator(options);
+    this.parserManager = new ParserManager(options);
+    this.fileDiscovery = new FileDiscovery(options);
+    this.backupManager = new BackupManager(options);
+    this.fileModifier = new FileModifier(options);
   }
 
   async start() {

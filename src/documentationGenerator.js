@@ -1,6 +1,6 @@
 const chalk = require('chalk').default || require('chalk');
 const { createAIProvider } = require('./aiProviderFactory');
-const DocumentationAnalyzer = require('./documentationAnalyzer');
+// DocumentationAnalyzer removed - using simple style detection
 
 /**
  * AI-Powered Documentation Generator
@@ -10,7 +10,7 @@ class DocumentationGenerator {
   constructor(options = {}) {
     this.options = options;
     this.aiAPI = createAIProvider(options);
-    this.analyzer = new DocumentationAnalyzer(options);
+    // analyzer removed - using simple style detection
     this.verbose = options.verbose || false;
   }
 
@@ -147,7 +147,7 @@ class DocumentationGenerator {
    * @param {Object} styleAnalysis - Style analysis
    * @returns {Promise<Object>} Generated docstring result
    */
-  async generateFunctionDocstring(func, styleAnalysis) {
+  async generateFunctionDocstring(func, styleAnalysis = {}) {
     const prompt = this.createFunctionPrompt(func, styleAnalysis);
     
     if (this.verbose) {
@@ -177,7 +177,7 @@ class DocumentationGenerator {
    * @param {Object} styleAnalysis - Style analysis
    * @returns {Promise<Object>} Generated docstring result
    */
-  async generateClassDocstring(cls, styleAnalysis) {
+  async generateClassDocstring(cls, styleAnalysis = {}) {
     const prompt = this.createClassPrompt(cls, styleAnalysis);
     
     if (this.verbose) {
@@ -207,7 +207,7 @@ class DocumentationGenerator {
    * @param {Object} styleAnalysis - Style analysis
    * @returns {string} Generated prompt
    */
-  createFunctionPrompt(func, styleAnalysis) {
+  createFunctionPrompt(func, styleAnalysis = {}) {
     const style = this.getRecommendedStyle(func.language, styleAnalysis);
     
     let prompt = `Generate a ${style} style docstring for this ${func.language} function:\n\n`;
@@ -249,7 +249,7 @@ class DocumentationGenerator {
    * @param {Object} styleAnalysis - Style analysis
    * @returns {string} Generated prompt
    */
-  createClassPrompt(cls, styleAnalysis) {
+  createClassPrompt(cls, styleAnalysis = {}) {
     const style = this.getRecommendedStyle(cls.language, styleAnalysis);
     
     let prompt = `Generate a ${style} style docstring for this ${cls.language} class:\n\n`;
@@ -281,11 +281,11 @@ class DocumentationGenerator {
    * @param {Object} styleAnalysis - Style analysis
    * @returns {string} Recommended style
    */
-  getRecommendedStyle(language, styleAnalysis) {
+  getRecommendedStyle(language, styleAnalysis = {}) {
     if (language === 'python') {
-      return styleAnalysis.project.python || 'google';
+      return 'google';
     } else if (language === 'javascript' || language === 'typescript') {
-      return styleAnalysis.project.javascript || 'standard';
+      return 'standard';
     }
     return 'google';
   }
