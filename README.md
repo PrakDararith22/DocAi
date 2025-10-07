@@ -18,90 +18,83 @@
 ## Features
 
 - **Chat Interface**: Natural language AI coding assistant
-- **Documentation Generation**: Auto-generate docstrings and comments
 - **Code Analysis**: Quality metrics and improvement suggestions
 - **File Modification**: Safe code changes with backup support
 - **Multi-Language**: Python, JavaScript, TypeScript support
 - **Local Fallback**: Works without AI API for basic code generation
 
-## Quick Start
+##  Quick Start
 
 ```bash
-# 1. Add to your project
+# 1. Install DocAI
 npm install git+https://github.com/yourusername/docai.git
 
-# 2. Run DocAI
-npx docai
+# 2. Initialize project (sets up API keys and config)
+docai init
+
+# 3. Start chatting!
+docai
 ```
 
-**That's it! DocAI launches directly into chat mode**
+**That's it! DocAI is ready to use**
 
 ---
 
 ## Installation
 
-### Project Installation
+###  Project Installation
 
-**Add DocAI to your project as a dev dependency:**
+**Add DocAI to your project:**
 ```bash
-npm install --save-dev git+https://github.com/yourusername/docai.git
+npm install git+https://github.com/yourusername/docai.git
 ```
 
-**Or install globally for system-wide access:**
+**Or install globally:**
 ```bash
 npm install -g git+https://github.com/yourusername/docai.git
 ```
 
-### Usage
+###  Initialization
 
-**Run the chat interface:**
+**Set up your project with the init command:**
 ```bash
-# From your project directory
-npx docai
-
-# Or if installed globally
-docai
+docai init
 ```
 
-**DocAI will prompt for API key setup on first run.**
+**The init command will:**
+- Prompt for AI provider selection (Gemini recommended)
+- Validate your API key
+- Auto-detect project settings (source directory, language)
+- Create `.docaiConfig.json` configuration file
+- Update `.gitignore` for security
 
-## Usage
-
-DocAI is a **chat-based AI coding assistant**.
-
+**After initialization, simply run:**
 ```bash
-# Launch interactive chat
+docai    # Start chat interface
+```
+
+**Or run directly from project:**
+```bash
 npx docai
 ```
 
-### Commands
+### 🔑 First Time Setup
 
-**File Operations:**
-- `/load <file>` - Load file into chat
-- `/files` - Show loaded files
-- `/apply` - Apply AI suggestions
-- `/insert` - Insert code at line
-- `/append` - Add code to end
+**Use the init command for initial configuration:**
+```bash
+docai init    # Interactive setup wizard
+```
 
-**Documentation:**
-- `/docs` - Generate docs for loaded files
-- `/docgen <function>` - Generate specific function docs
-- `/scan` - Scan for missing docs
+**The init command handles:**
+- AI provider selection and API key validation
+- Project configuration (source directory, language)
+- Security setup (.gitignore updates)
 
-**Code Analysis:**
-- `/analyze` - Code quality analysis
-- `/refactor` - Refactoring suggestions
-- `/optimize` - Performance tips
-
-**Natural Language:**
-Just describe what you want!
-
-### Workflow
-
-1. Run `npx docai`
-2. Load files: `/load src/myfile.py`
-3. Ask for help: "Add error handling"
-4. Apply changes: `/apply`
+**After setup, use regular commands:**
+```bash
+docai         # Start chat interface
+docai --help  # Show all commands
+```
 
 ## Development
 
